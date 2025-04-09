@@ -15,8 +15,9 @@
 ### 1. Install Dependencies
 
 ```bash
-npm install @electric-sql/pglite
-npm install --save-dev vite
+npm install 
+npm install pgsql-ast-parser
+
 ```
 
 ### 2. Run Code

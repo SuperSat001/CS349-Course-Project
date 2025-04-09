@@ -40,3 +40,23 @@
 .read-the-docs {
   color: #888;
 }
+
+.ast-tree {
+  list-style-type: none;
+  padding: 0;
+  color: #e6e6e6;
+  background: #2c2c2c;
+}
+
+.ast-tree li {
+  margin: 5px 0;
+}
+
+.ast-tree strong {
+  color: #f1c40f;
+}
+
+.ast-tree ul {
+  padding-left: 20px;
+  list-style-type: disc;
+}
