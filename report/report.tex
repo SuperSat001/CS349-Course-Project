@@ -70,7 +70,16 @@ Below is the current status of our project for each of the features:
 
 \subsection{Query Profiling and Runtime Analysis}
 
-TODO Ayan
+We have built the foundation for profiling SQL queries by breaking them down into their smallest executable subqueries. Using a JavaScript-based parser, the input SQL is transformed into an Abstract Syntax Tree (AST), which is then recursively traversed to identify standalone components such as base table reads, nested SELECT statements, and subqueries within CTEs and WHERE clauses.
+
+For each of these subqueries, we execute EXPLAIN ANALYZE using an in-browser PostgreSQL instance powered by pglite. This enables us to retrieve and display detailed execution statistics for each individual component of the query, helping to identify bottlenecks or costly operations.
+
+However, one current limitation arises in the context of CTEs (Common Table Expressions). Since CTEs are not materialized as actual tables during query analysis, it's not possible to run EXPLAIN ANALYZE directly on confined fragments of the query that depend on those virtual tables. As a result, any attempt to analyze subqueries that reference a CTE-defined name fails unless the CTE is expanded or inlined back into the subquery for analysis.
+
+Future improvements include: \begin{itemize} \item Implementing CTE inlining to allow execution of dependent subqueries outside the main query block. \item Improving the AST visitor to intelligently track and inline or cache CTE output during traversal. \item Adding visual tools for highlighting which parts of the query contribute most to total runtime. \item Handling edge cases such as window functions, lateral joins, and correlated subqueries more robustly. \end{itemize}
+
+Overall, we now have a working pipeline that accepts an arbitrary SQL query, parses and visualizes its structure, extracts meaningful subcomponents, and runs execution analysis on them where possible.
+
 
 \subsection{Evaluation Plans and Query Optimization}
 
