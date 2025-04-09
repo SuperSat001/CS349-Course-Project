@@ -12,15 +12,4 @@
 
 ## ⚙️ Setup Instructions
 
-### 1. Install Dependencies
-
-```bash
-npm install @electric-sql/pglite
-npm install --save-dev vite
-```
-
-### 2. Run Code
-
-```bash 
-npm run dev
-```
+Run `npm install` to install dependencies.

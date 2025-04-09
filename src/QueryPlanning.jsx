@@ -57,47 +57,6 @@ const ExplainQuery = () => {
   )
 }
 
-const MyComponent = () => {
-  const db = usePGlite()
-  const [id, setId] = useState("")
-  const [name, setName] = useState("")
-
-  const insertItem = async () => {
-    try {
-      if (!id || !name) {
-        alert("Please enter both ID and Name")
-        return
-      }
-      await db.query(`INSERT INTO my_table (id, name) VALUES (${id}, '${name}');`)
-      console.log("Item inserted successfully")
-      setId("") // Clear the input fields
-      setName("")
-    } catch (error) {
-      console.error("Error inserting item:", error)
-    }
-  }
-
-  return (
-    <div>
-      <input
-        type="number"
-        placeholder="Enter ID"
-        value={id}
-        onChange={(e) => setId(e.target.value)}
-        style={{ marginRight: "10px" }}
-      />
-      <input
-        type="text"
-        placeholder="Enter Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        style={{ marginRight: "10px" }}
-      />
-      <button onClick={insertItem}>Insert Item</button>
-    </div>
-  )
-}
-
 const DisplayRows = () => {
   const db = usePGlite()
   const [rows, setRows] = useState([])
@@ -120,7 +79,7 @@ const DisplayRows = () => {
 
   return (
     <div>
-      <button onClick={toggleRowsVisibility} style={{ margin: "10px" }}>
+      <button onClick={toggleRowsVisibility} style={{ margin: "20px" }}>
         {showRows ? "Hide Rows" : "Show Rows"}
       </button>
       {showRows && (
@@ -138,49 +97,6 @@ const DisplayRows = () => {
 
 function QueryPlanning() {
   const [count, setCount] = useState(0)
-  // const [db, setDb] = useState(null)
-
-  // useEffect(() => {
-  //   async function initializeDb() {
-  //     const database = await PGlite.create({
-  //       extensions: { live }
-  //     })
-
-  //     // Create the table if it doesn't exist
-  //     await database.query(`
-  //       CREATE TABLE IF NOT EXISTS my_table (
-  //         id INTEGER PRIMARY KEY,
-  //         name TEXT NOT NULL
-  //       );
-  //     `)
-
-  //     await database.query(`
-  //       CREATE TABLE IF NOT EXISTS other_table (
-  //         id INTEGER PRIMARY KEY,
-  //         tag TEXT NOT NULL
-  //       );
-  //     `)
-
-  //     await database.query(`CREATE INDEX IF NOT EXISTS idx_my_table_id ON my_table(id);`)
-  //     await database.query(`CREATE INDEX IF NOT EXISTS idx_othertable_id ON other_table(id);`)
-
-  //     const response = await fetch('/sample_data_2.sql')
-  //     const sqlText = await response.text()
-  //     console.log("SQL Text:", sqlText)
-  //     await database.query(sqlText)
-
-  //     await database.query(`INSERT INTO other_table (id, tag) VALUES (1, 'tag1');`)
-  //     await database.query(`INSERT INTO other_table (id, tag) VALUES (2, 'tag2');`)
-
-  //     setDb(database)
-  //     console.log("Database initialized and table created:", database)
-  //   }
-  //   initializeDb()
-  // }, [])
-
-  // if (!db) {
-  //   return <p>Loading database...</p>
-  // }
 
   return (
     <>
