@@ -55,8 +55,8 @@ Harsh Kumar (22B0973)}
 
 In our initial project proposal, we aimed to extend the XData system and implement the following features:
 \begin{itemize}
-    \item Query Profiling and Runtime Analysis
-    \item Evaluation Plans and Query Optimization
+    \item Query Profiling and Runtime Analysis $\checkmark$
+    \item Evaluation Plans and Query Optimization $\checkmark$
     \item Client Side Autograding
     \item Support for Concurrent Queries
     \item Adding Constraints to Queries
@@ -113,15 +113,28 @@ The main utility of this feature is that sometimes the query planner chooses a s
 
 The other 3 features are still being worked on. We have included them in our future plan of action and provided a rough timeline for their implementation.
 
-\section{Future Plan of Action}
+\section{Future Plan of Action and Timeline}
 
-\section{Rough Timeline}
+The tasks remaining with their expected time to completion for the project are as follows:
+\begin{itemize}
+    \item \textbf{Client Side Autograding (1 Week):} Since PGLite is a client side database, we can directly run and check queries on the client side. To avoid leaking the solution, we are currently using a hash of the solution. The autograder will check the hash of the solution against the expected hash. We are also exploring the possibility of dumping the database to a file and checking the file against the expected file.
+    \item \textbf{Support for Concurrent Queries (1 Week):} We are also working on supporting concurrent queries. We plan to use \verb|pg_locks| to ensure that the queries are executed in a serializable manner. This will allow us to run multiple queries at the same time without any conflicts.
+    \item \textbf{Adding Constraints to Queries (2 Weeks):} We are still figuring out how to implement this feature. One approach we are trying is whitelisting operations that can be performed in a query. However, this approach is not very flexible and leads to many unwanted constraints. We are also exploring the possibility of using a query parser with a small local LLM to check the constraints.
+    \item \textbf{Integration with XData Code (Last 2-3 days):} We also need to integrate our code with the XData codebase. This can be done after discussing with the XData team at the later stage of the project.
+\end{itemize}
 
-\section{Integration with XData Code}
 
 \section{Challenges Faced}
+While working on the project, we faced several challenges. We already resolved some of them, but few are still pending. Some of them are:
+\begin{itemize}
+    \item PGLite does not provide any API to parse and view the AST for PostgreSQL queries. This makes it difficult to implement the query profiling and runtime analysis feature. We are relying on a third-party library to currently do the same.
+    \item PGLite crashes with large databases. This makes it harder to observe a significant difference in the performance of different evaluation plans. We are currently working on a workaround to this issue.
+    \item The documentation for PGLite is not very clear. This is especially the case for the React integration with PGLite. Although we were able to use some of the provided React Hooks for PGLite, we had to figure out the rest of the integration ourselves. 
+\end{itemize}
 
 \section{Conclusion}
+
+In conclusion, we feel that we have made significant progress on the project. We have implemented the query profiling and runtime analysis feature, and we are also working on the other 3 features. We are very open to feedback and suggestions from the XData team in regards to the project and the features we are implementing. Our team is very enthusiastic about the project and hope that we have some meaningful contributions to the existing XData platform by the end of this semester.
 
     
 \end{document}
