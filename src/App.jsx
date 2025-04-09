@@ -5,6 +5,9 @@ import { live } from "@electric-sql/pglite/live"
 import { PGliteProvider } from "@electric-sql/pglite-react"
 import { usePGlite } from "@electric-sql/pglite-react"
 import ScanOptions from './ScanOptions'
+import JoinOptions from './JoinOptions'
+import SortOptions from './SortOptions'
+import GroupOptions from './GroupOptions'
 
 const ExplainQuery = () => {
   const db = usePGlite()
@@ -13,7 +16,10 @@ const ExplainQuery = () => {
   const runExplain = async () => {
     try {
 
-      const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table WHERE id = '12';`)
+      // const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table WHERE id = '12';`)
+      // const result = await db.query(`EXPLAIN ANALYZE SELECT name, COUNT(*) FROM my_table GROUP BY name;`)
+      // const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table ORDER BY name;`)
+      const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table m JOIN other_table o ON m.id = o.id;`)
       const explainText = result.rows.map(row => row['QUERY PLAN']).join('\n')
       setPlan(explainText)
       console.log("Explain plan:\n", explainText)
@@ -121,13 +127,22 @@ function App() {
       `)
 
       await database.query(`
-        CREATE INDEX IF NOT EXISTS idx_my_table_id ON my_table(id);
+        CREATE TABLE IF NOT EXISTS other_table (
+          id INTEGER PRIMARY KEY,
+          tag TEXT NOT NULL
+        );
       `)
 
-      const response = await fetch('/sample_data.sql')
+      await database.query(`CREATE INDEX IF NOT EXISTS idx_my_table_id ON my_table(id);`)
+      await database.query(`CREATE INDEX IF NOT EXISTS idx_othertable_id ON other_table(id);`)
+
+      const response = await fetch('/sample_data_2.sql')
       const sqlText = await response.text()
       console.log("SQL Text:", sqlText)
       await database.query(sqlText)
+
+      await database.query(`INSERT INTO other_table (id, tag) VALUES (1, 'tag1');`)
+      await database.query(`INSERT INTO other_table (id, tag) VALUES (2, 'tag2');`)
 
       setDb(database)
       console.log("Database initialized and table created:", database)
@@ -141,10 +156,12 @@ function App() {
 
   return (
     <PGliteProvider db={db}>
-      <MyComponent />
       <DisplayRows />
       <ExplainQuery />
       <ScanOptions />
+      <JoinOptions />
+      <SortOptions />
+      <GroupOptions />
     </PGliteProvider>
   )
 }

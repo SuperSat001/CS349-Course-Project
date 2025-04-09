@@ -60,13 +60,11 @@ const ScanOptions = () => {
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid gray", borderRadius: "8px" }}>
       <h3>Scan Preference Controller</h3>
       <p><strong>Current Scan Preference:</strong> {currentScan}</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         <button onClick={() => forceScanType("seqscan")}>Force Seq Scan</button>
         <button onClick={() => forceScanType("indexscan")}>Force Index Scan</button>
         <button onClick={() => forceScanType("bitmapscan")}>Force Bitmap Scan</button>
         <button onClick={() => forceScanType("tidscan")}>Force TID Scan</button>
         <button onClick={resetPlannerFlags}>Reset to Default</button>
-      </div>
     </div>
   )
 }
