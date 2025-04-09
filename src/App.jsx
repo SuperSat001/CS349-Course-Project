@@ -4,6 +4,7 @@ import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { PGliteProvider } from "@electric-sql/pglite-react"
 import { usePGlite } from "@electric-sql/pglite-react"
+import ScanOptions from './ScanOptions'
 
 const ExplainQuery = () => {
   const db = usePGlite()
@@ -11,7 +12,7 @@ const ExplainQuery = () => {
 
   const runExplain = async () => {
     try {
-      
+
       const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table WHERE id = '12';`)
       const explainText = result.rows.map(row => row['QUERY PLAN']).join('\n')
       setPlan(explainText)
@@ -143,6 +144,7 @@ function App() {
       <MyComponent />
       <DisplayRows />
       <ExplainQuery />
+      <ScanOptions />
     </PGliteProvider>
   )
 }
