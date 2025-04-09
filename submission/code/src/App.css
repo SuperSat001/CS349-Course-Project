@@ -1,0 +1,103 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9c2;
+  color: #333;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 10px;
+  background-color: #282c34;
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: white; /* or any other bg color */
+  z-index: 1000; /* ensures it stays on top of other elements */
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* optional shadow */
+  display: flex;
+  gap: 5rem; /* space between links */
+}
+
+nav a:hover {
+  background-color: #4CAF50;
+}
+
+h1, h2 {
+  color: #282c34;
+}
+
+button {
+  padding: 10px 15px;
+  border-radius: 5px;
+  background-color: #007BFF;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+input {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 10px;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+ul li {
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.main-container {
+  width: 1000px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 100px; /* Increased gap to add more space between columns */
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.right-column {
+  flex: 2;
+}
