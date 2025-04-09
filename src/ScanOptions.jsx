@@ -58,7 +58,7 @@ const ScanOptions = () => {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid gray", borderRadius: "8px" }}>
-      <h3>Scan Preference Controller</h3>
+      <h3>Scan Preference Options</h3>
       <p><strong>Current Scan Preference:</strong> {currentScan}</p>
         <button onClick={() => forceScanType("seqscan")}>Force Seq Scan</button>
         <button onClick={() => forceScanType("indexscan")}>Force Index Scan</button>
