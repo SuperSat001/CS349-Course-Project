@@ -1,5 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom'
-import Dummy1 from './Dummy1.jsx'
+import Options from './Options.jsx'
 import Dummy2 from './Dummy2.jsx'
 import Minimal from './Minimal.jsx'
 import './App.css'
@@ -24,7 +24,7 @@ function App() {
             <Minimal />
           }
         />
-        <Route path="/dummy1" element={<Dummy1 />} />
+        <Route path="/dummy1" element={<Options />} />
         <Route path="/dummy2" element={<Dummy2 />} />
       </Routes>
     </div>
