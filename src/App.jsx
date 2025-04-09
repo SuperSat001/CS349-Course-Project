@@ -5,22 +5,71 @@ import { live } from "@electric-sql/pglite/live"
 import { PGliteProvider } from "@electric-sql/pglite-react"
 import { usePGlite } from "@electric-sql/pglite-react"
 
+const ExplainQuery = () => {
+  const db = usePGlite()
+  const [plan, setPlan] = useState("")
+
+  const runExplain = async () => {
+    try {
+      
+      const result = await db.query(`EXPLAIN ANALYZE SELECT * FROM my_table WHERE id = '12';`)
+      const explainText = result.rows.map(row => row['QUERY PLAN']).join('\n')
+      setPlan(explainText)
+      console.log("Explain plan:\n", explainText)
+    } catch (error) {
+      console.error("Error running EXPLAIN ANALYZE:", error)
+      setPlan("Error running EXPLAIN ANALYZE")
+    }
+  }
+
+  return (
+    <div>
+      <button onClick={runExplain}>Run EXPLAIN ANALYZE</button>
+      <pre style={{ background: "black", color: "white", padding: "1em", marginTop: "1em", overflowX: "auto" }}>
+        {plan}
+      </pre>
+    </div>
+  )
+}
+
 const MyComponent = () => {
   const db = usePGlite()
+  const [id, setId] = useState("")
+  const [name, setName] = useState("")
 
   const insertItem = async () => {
     try {
-      await db.query("INSERT INTO my_table (id, name, number) VALUES (1, 'Arthur', 42);")
+      if (!id || !name) {
+        alert("Please enter both ID and Name")
+        return
+      }
+      await db.query(`INSERT INTO my_table (id, name) VALUES (${id}, '${name}');`)
       console.log("Item inserted successfully")
+      setId("") // Clear the input fields
+      setName("")
     } catch (error) {
       console.error("Error inserting item:", error)
     }
   }
 
   return (
-    <>
+    <div>
+      <input
+        type="number"
+        placeholder="Enter ID"
+        value={id}
+        onChange={(e) => setId(e.target.value)}
+        style={{ marginRight: "10px" }}
+      />
+      <input
+        type="text"
+        placeholder="Enter Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{ marginRight: "10px" }}
+      />
       <button onClick={insertItem}>Insert Item</button>
-    </>
+    </div>
   )
 }
 
@@ -66,10 +115,18 @@ function App() {
       await database.query(`
         CREATE TABLE IF NOT EXISTS my_table (
           id INTEGER PRIMARY KEY,
-          name TEXT NOT NULL,
-          number INTEGER NOT NULL
+          name TEXT NOT NULL
         );
       `)
+
+      await database.query(`
+        CREATE INDEX IF NOT EXISTS idx_my_table_id ON my_table(id);
+      `)
+
+      const response = await fetch('/sample_data.sql')
+      const sqlText = await response.text()
+      console.log("SQL Text:", sqlText)
+      await database.query(sqlText)
 
       setDb(database)
       console.log("Database initialized and table created:", database)
@@ -85,6 +142,7 @@ function App() {
     <PGliteProvider db={db}>
       <MyComponent />
       <DisplayRows />
+      <ExplainQuery />
     </PGliteProvider>
   )
 }
