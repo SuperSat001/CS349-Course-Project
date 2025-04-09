@@ -108,7 +108,7 @@ const DisplayRows = () => {
   )
 }
 
-function App() {
+function Options() {
   const [count, setCount] = useState(0)
   const [db, setDb] = useState(null)
 
@@ -166,4 +166,4 @@ function App() {
   )
 }
 
-export default App
+export default Options;
