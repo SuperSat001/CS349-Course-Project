@@ -1,0 +1,28 @@
+-- public/sample_data.sql
+
+INSERT INTO my_table (id, name) VALUES
+    (1, 'Arthur'),
+    (2, 'Ford'),
+    (3, 'Trillian'),
+    (4, 'Zaphod'),
+    (5, 'Marvin'),
+    (6, 'Slartibartfast'),
+    (7, 'Eddie'),
+    (8, 'Agrajag'),
+    (9, 'Fenchurch'),
+    (10, 'Wowbagger'),
+    (11, 'Deep Thought'),
+    (12, 'Frankie'),
+    (13, 'Benjy'),
+    (14, 'Gag Halfrunt'),
+    (15, 'Hactar'),
+    (16, 'Lunkwill'),
+    (17, 'Fook'),
+    (18, 'Yooden Vranx'),
+    (19, 'Zarniwoop'),
+    (20, 'Veet Voojagig'),
+    (21, 'Majikthise'),
+    (22, 'Vroomfondel'),
+    (23, 'Gargravarr'),
+    (24, 'Prak'),
+    (25, 'Shooty');
