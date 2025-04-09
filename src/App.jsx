@@ -7,7 +7,7 @@ import './App.css'
 const Navbar = () => (
   <nav>
     <Link to="/">Home</Link>
-    <Link to="/dummy1">Dummy1</Link>
+    <Link to="/options">Query Planning</Link>
     <Link to="/dummy2">Dummy2</Link>
   </nav>
 )
@@ -24,7 +24,7 @@ function App() {
             <Minimal />
           }
         />
-        <Route path="/dummy1" element={<Options />} />
+        <Route path="/options" element={<Options />} />
         <Route path="/dummy2" element={<Dummy2 />} />
       </Routes>
     </div>
