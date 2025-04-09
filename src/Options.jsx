@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import './App.css'
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { PGliteProvider } from "@electric-sql/pglite-react"
@@ -155,6 +154,7 @@ function Options() {
   }
 
   return (
+    <div style={{ marginTop: "3em"}}>
     <PGliteProvider db={db}>
       <DisplayRows />
       <ExplainQuery />
@@ -163,6 +163,7 @@ function Options() {
       <SortOptions />
       <GroupOptions />
     </PGliteProvider>
+    </div>
   )
 }
 
