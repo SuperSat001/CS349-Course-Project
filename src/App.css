@@ -19,14 +19,19 @@ nav {
   margin-bottom: 20px;
 }
 
-nav a {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-  padding: 10px 15px;
-  border-radius: 5px;
-  transition: background-color 0.3s ease;
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: white; /* or any other bg color */
+  z-index: 1000; /* ensures it stays on top of other elements */
+  padding: 1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* optional shadow */
+  display: flex;
+  gap: 1rem; /* space between links */
 }
+
 
 nav a:hover {
   background-color: #4CAF50;
