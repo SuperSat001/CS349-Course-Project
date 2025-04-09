@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
-import './App.css'
 import Dummy1 from './Dummy1.jsx'
 import Dummy2 from './Dummy2.jsx'
 import Minimal from './Minimal.jsx'
+import './App.css'
 
 const Navbar = () => (
   <nav>
@@ -32,4 +31,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
