@@ -70,7 +70,15 @@ Below is the current status of our project for each of the features:
 
 \subsection{Query Profiling and Runtime Analysis}
 
-TODO Ayan
+We have built the foundation for profiling SQL queries by breaking them down into their smallest executable subqueries. Using a JavaScript-based parser, the input SQL is transformed into an Abstract Syntax Tree (AST), which is then recursively traversed to identify standalone components such as base table reads, nested SELECT statements, and subqueries within CTEs and WHERE clauses.
+
+For each of these subqueries, we execute EXPLAIN ANALYZE using an in-browser PostgreSQL instance powered by pglite. This enables us to retrieve and display detailed execution statistics for each individual component of the query, helping to identify bottlenecks or costly operations.
+
+However, one current limitation arises in the context of CTEs (Common Table Expressions). Since CTEs are not materialized as actual tables during query analysis, it's not possible to run EXPLAIN ANALYZE directly on confined fragments of the query that depend on those virtual tables. As a result, any attempt to analyze subqueries that reference a CTE-defined name fails unless the CTE is expanded or inlined back into the subquery for analysis.
+
+Future improvements include: \begin{itemize} \item Implementing CTE inlining to allow execution of dependent subqueries outside the main query block. \item Improving the AST visitor to intelligently track and inline or cache CTE output during traversal. \item Adding visual tools for highlighting which parts of the query contribute most to total runtime. \item Handling edge cases such as window functions, lateral joins, and correlated subqueries more robustly. \end{itemize}
+
+Overall, we now have a working pipeline that accepts an arbitrary SQL query, parses and visualizes its structure, extracts meaningful subcomponents, and runs execution analysis on them where possible.
 
 \subsection{Evaluation Plans and Query Optimization}
 
@@ -126,6 +134,10 @@ While working on the project, we faced several challenges. We already resolved s
 \section{Conclusion}
 
 In conclusion, we feel that we have made significant progress on the project. We have implemented the query profiling and runtime analysis feature, and we are also working on the other 3 features. We are very open to feedback and suggestions from the XData team in regards to the project and the features we are implementing. Our team is very enthusiastic about the project and hope that we have some meaningful contributions to the existing XData platform by the end of this semester.
+
+\medskip
+
+Our code has some bugs here and there but we are confident that we will be able to fix them in the next few weeks before the final submission.
 
     
 \end{document}
