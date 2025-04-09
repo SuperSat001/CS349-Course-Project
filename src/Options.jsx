@@ -82,6 +82,7 @@ const MyComponent = () => {
 const DisplayRows = () => {
   const db = usePGlite()
   const [rows, setRows] = useState([])
+  const [showRows, setShowRows] = useState(false) // State to toggle visibility
 
   const fetchRows = async () => {
     try {
@@ -93,16 +94,25 @@ const DisplayRows = () => {
     }
   }
 
+  const toggleRowsVisibility = () => {
+    fetchRows();
+    setShowRows((prev) => !prev)
+  }
+
   return (
     <div>
-      <button onClick={fetchRows}>Display Rows</button>
-      <ul>
-        {rows.map((row, index) => (
-          <li key={index}>
-            ID: {row.id}, Name: {row.name}, Number: {row.number}
-          </li>
-        ))}
-      </ul>
+      <button onClick={toggleRowsVisibility} style={{ margin: "10px" }}>
+        {showRows ? "Hide Rows" : "Show Rows"}
+      </button>
+      {showRows && (
+        <ul style={{ marginTop: "20px" }}>
+          {rows.map((row, index) => (
+            <li key={index}>
+              ID: {row.id}, Name: {row.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
