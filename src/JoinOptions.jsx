@@ -37,7 +37,7 @@ const JoinOptions = () => {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid gray", borderRadius: "8px" }}>
-      <h3>Join Strategy Options</h3>
+      <h3>Join Strategy QueryPlanning</h3>
       <p><strong>Current Join Preference:</strong> {currentJoin}</p>
       <button onClick={() => forceJoin("nestloop")}>Force NestLoop Join</button>
       <button onClick={() => forceJoin("mergejoin")}>Force Merge Join</button>

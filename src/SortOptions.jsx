@@ -26,7 +26,7 @@ const SortOptions = () => {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid gray", borderRadius: "8px" }}>
-      <h3>Sort Strategy Options</h3>
+      <h3>Sort Strategy QueryPlanning</h3>
       <p><strong>Current Sort Preference:</strong> {currentSort}</p>
       <button onClick={() => forceSort("sort_only")}>Force Plain Sort</button>
       <button onClick={() => forceSort("incremental_only")}>Force Incremental Sort</button>

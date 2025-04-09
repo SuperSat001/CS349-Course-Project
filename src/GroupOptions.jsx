@@ -20,7 +20,7 @@ const GroupOptions = () => {
 
   return (
     <div style={{ marginTop: "1rem", padding: "1rem", border: "1px solid gray", borderRadius: "8px" }}>
-      <h3>Aggregation Options</h3>
+      <h3>Aggregation QueryPlanning</h3>
       <p><strong>Current Aggregation Preference:</strong> {currentGroup}</p>
       <button onClick={() => forceGroup("hashagg")}>Prefer Hash Aggregate</button>
       <button onClick={() => forceGroup("groupagg")}>Force Group Aggregate</button>
