@@ -4,7 +4,7 @@
   padding: 2rem;
   text-align: center;
   font-family: 'Arial', sans-serif;
-  background-color: #f9f9f9;
+  background-color: #f9f9f9c2;
   color: #333;
 }
 
@@ -29,9 +29,8 @@ nav {
   padding: 1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* optional shadow */
   display: flex;
-  gap: 1rem; /* space between links */
+  gap: 5rem; /* space between links */
 }
-
 
 nav a:hover {
   background-color: #4CAF50;
@@ -82,4 +81,23 @@ ul li {
   border-radius: 5px;
   margin-bottom: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.main-container {
+  width: 1000px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 100px; /* Increased gap to add more space between columns */
+}
+
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.right-column {
+  flex: 2;
 }
