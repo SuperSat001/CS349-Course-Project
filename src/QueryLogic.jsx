@@ -1,82 +1,143 @@
-// src/QueryLogic.js
-import { parse } from 'pgsql-ast-parser';
-import { toSqlFromAst } from './sqlGenerator';
+import { parse, toSql, astVisitor } from 'pgsql-ast-parser';
 
-const normalizeSql = (sql) => sql.trim().replace(/;+$/, '');
-
-export const extractSubqueries = (ast) => {
+const extractSubqueries = (ast) => {
   const subqueries = [];
-  const seenSql = new Set();
+  let subqueryCounter = 0;
 
-  const addSubquery = (name, sql) => {
-    const normalized = normalizeSql(sql);
-    if (!seenSql.has(normalized)) {
-      subqueries.push({ name, sql });
-      seenSql.add(normalized);
-    }
-  };
-
-  const traverse = (node, nameHint = '') => {
-    if (!node || typeof node !== 'object') return;
-
-    if (node.type === 'with' && node.clauses) {
-      node.clauses.forEach(cte => {
-        const subquerySql = toSqlFromAst(cte.query);
-        addSubquery(cte.alias, subquerySql);
-        traverse(cte.query, cte.alias);
-      });
-      traverse(node.statement);
-      return;
-    }
-
-    if (node.type === 'select') {
-      const fullSql = toSqlFromAst(node);
-      addSubquery(nameHint || 'select', fullSql);
-
-      if (node.from) {
-        node.from.forEach(fromItem => {
-          if (fromItem.type === 'subselect') {
-            const subquerySql = toSqlFromAst(fromItem.query);
-            addSubquery(fromItem.alias || 'subselect', subquerySql);
-            traverse(fromItem.query);
-          } else if (fromItem.type === 'statement' && fromItem.statement?.type === 'select') {
-            const subquerySql = toSqlFromAst(fromItem.statement);
-            addSubquery(fromItem.alias || 'subselect', subquerySql);
-            traverse(fromItem.statement);
-          } else if ((fromItem.type === 'derived_table' || fromItem.type === 'alias') && fromItem.query?.type === 'select') {
-            const subquerySql = toSqlFromAst(fromItem.query);
-            addSubquery(fromItem.alias || 'subselect', subquerySql);
-            traverse(fromItem.query);
-          } else if (fromItem.type === 'table') {
-            const tableSql = `SELECT ${node.columns.map(col => col.expr?.name || '*').join(', ')} FROM ${fromItem.name.name}` + (node.where ? ` WHERE ${toSqlExpr(node.where)}` : '') + ';';
-            addSubquery(fromItem.name.name, tableSql);
+  const visitor = astVisitor((map) => ({
+    // Handle CTEs in WITH clauses
+    with: (w) => {
+      console.log("Visiting WITH clause:", w);
+      if (w.bind) {
+        w.bind.forEach((cte) => {
+          if (cte.statement && cte.statement.type === 'select') {
+            subqueryCounter++;
+            const subquerySql = toSql.statement(cte.statement);
+            subqueries.push({
+              name: cte.alias.name || `cte_${subqueryCounter}`,
+              sql: subquerySql,
+            });
+            console.log(`Found CTE: ${subquerySql}`);
           }
         });
       }
-    }
+      map.super().with(w);
+    },
 
-    Object.values(node).forEach(value => {
-      if (Array.isArray(value)) {
-        value.forEach(child => traverse(child));
-      } else {
-        traverse(value);
+    // Handle subqueries in FROM clauses
+    from: (f) => {
+      console.log("Visiting FROM clause:", f);
+      const fromItems = Array.isArray(f) ? f : f ? [f] : [];
+      fromItems.forEach((fromItem) => {
+        if (fromItem.type === 'statement' && fromItem.statement.type === 'select') {
+          subqueryCounter++;
+          const subquerySql = toSql.statement(fromItem.statement);
+          subqueries.push({
+            name: fromItem.alias || `subquery_${subqueryCounter}`,
+            sql: subquerySql,
+          });
+          console.log(`Found FROM subquery: ${subquerySql}`);
+        }
+      });
+      map.super().from(f);
+    },
+
+    // Handle subqueries in WHERE clauses
+    where: (w) => {
+      console.log("Visiting WHERE clause:", w);
+      if (w) {
+        if (w.type === 'binary' && w.op === 'IN' && w.right && w.right.type === 'select') {
+          subqueryCounter++;
+          const subquerySql = toSql.statement(w.right);
+          subqueries.push({
+            name: `subquery_${subqueryCounter}`,
+            sql: subquerySql,
+          });
+          console.log(`Found IN subquery: ${subquerySql}`);
+        } else if (w.type === 'call' && w.function.name === 'exists' && w.args[0].type === 'select') {
+          subqueryCounter++;
+          const subquerySql = toSql.statement(w.args[0]);
+          subqueries.push({
+            name: `subquery_${subqueryCounter}`,
+            sql: subquerySql,
+          });
+          console.log(`Found EXISTS subquery: ${subquerySql}`);
+        }
       }
-    });
-  };
+      map.super().where(w); // Rely on natural recursion
+    },
 
-  const astArray = Array.isArray(ast) ? ast : ast ? [ast] : [];
-  astArray.forEach(stmt => traverse(stmt));
+    // Handle subqueries in SELECT clause (columns)
+    select: (s) => {
+      console.log("Visiting SELECT clause:", s);
+      if (s && s.columns) {
+        s.columns.forEach((col) => {
+          if (col.expr && col.expr.type === 'select') {
+            subqueryCounter++;
+            const subquerySql = toSql.statement(col.expr);
+            subqueries.push({
+              name: `subquery_${subqueryCounter}`,
+              sql: subquerySql,
+            });
+            console.log(`Found SELECT subquery: ${subquerySql}`);
+          }
+        });
+      }
+      map.super().select(s);
+    },
+    // Handle subqueries in JOIN clauses
+    join: (j) => {
+      console.log("Visiting JOIN clause:", j);
+      if (j && j.right && j.right.type === 'select') {
+        subqueryCounter++;
+        const subquerySql = toSql.statement(j.right);
+        subqueries.push({
+          name: `subquery_${subqueryCounter}`,
+          sql: subquerySql,
+        });
+        console.log(`Found JOIN subquery: ${subquerySql}`);
+      }
+      map.super().join(j);
+    },
+
+    // // Log all SELECT statements
+    // statement: (s) => {
+    //   console.log("Visiting statement:", s);
+    //   if (s.type === 'select') {
+    //     console.log("Processing SELECT statement:", toSql.statement(s));
+    //   }
+    //   map.super().statement(s);
+    // },
+  }));
+
+  console.log("Starting AST traversal...");
+  if (Array.isArray(ast)) {
+    ast.forEach((statement) => {
+      console.log("Traversing statement:", toSql.statement(statement));
+      visitor.statement(statement);
+    });
+  } else {
+    console.log("Traversing single statement:", toSql.statement(ast));
+    visitor.statement(ast);
+  }
+
+  console.log("Extracted subqueries:", subqueries);
   return subqueries;
 };
 
 export const analyzeSubqueries = async (db, query) => {
   const results = [];
   try {
-    const parsed = parse(query);
+    const parsed = parse(query); // Parse the SQL query into an AST
+    console.log("Parsed AST:", parsed);
     const ast = Array.isArray(parsed) ? parsed : [parsed];
-    const subqueries = extractSubqueries(parsed);
+    console.log("Input AST:", JSON.stringify(parsed, null, 2));
+    const subqueries = extractSubqueries(parsed); // Extract subqueries
+    console.log("Extracted Subqueries:", subqueries);
+
     for (const subquery of subqueries) {
       try {
+        console.log("Subquery SQL:", subquery.sql);
         const explain = await db.query(`EXPLAIN ANALYZE ${subquery.sql}`);
         results.push({ name: subquery.name, sql: subquery.sql, explain: explain.rows });
       } catch (err) {
@@ -89,25 +150,3 @@ export const analyzeSubqueries = async (db, query) => {
     throw new Error(`Failed to parse query: ${err.message}`);
   }
 };
-
-function toSqlExpr(expr) {
-  if (!expr) return '';
-  switch (expr.type) {
-    case 'ref':
-      return expr.name;
-    case 'string':
-      return `'${expr.value}'`;
-    case 'integer':
-      return expr.value.toString();
-    case 'call':
-      return `${expr.function}(${expr.args.map(toSqlExpr).join(', ')})`;
-    case 'binary':
-      return `${toSqlExpr(expr.left)} ${expr.op} ${toSqlExpr(expr.right)}`;
-    case 'unary':
-      return `${expr.op} ${toSqlExpr(expr.operand)}`;
-    case 'select':
-      return `(${toSqlFromAst(expr)})`;
-    default:
-      return '/* unknown_expr */';
-  }
-}
