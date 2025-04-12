@@ -1,11 +1,62 @@
 export const analyzeSubqueries = async (db, query) => {
-  // console.log('Analyzing query:', query);
-  const results = {
-    results: [],
+  const results = { results: [] };
+
+  // Suggestion Generator
+  const generateSuggestion = (node) => {
+    const nodeType = node['Node Type'];
+    const actualTime = node['Actual Total Time'] || 0;
+    const rows = node['Actual Rows'] || 0;
+    const relationName = node['Relation Name'] || '';
+    const filter = node['Filter'] || '';
+    const joinType = node['Join Type'] || '';
+    const indexName = node['Index Name'] || '';
+    const suggestions = [];
+
+    // Heuristics
+    if (actualTime > 10) {
+      suggestions.push(`⚠️ High execution time (${actualTime.toFixed(2)} ms). Consider optimizing this part.`);
+    }
+
+    if (nodeType === 'Seq Scan' && rows > 1000) {
+      suggestions.push(`🔍 Sequential scan on large dataset (${rows} rows) on "${relationName}". Consider adding an index or filtering earlier.`);
+    }
+
+    if (nodeType === 'Nested Loop' && rows > 100 && actualTime > 5) {
+      suggestions.push(`🔁 Nested Loop with large rows. Consider using Hash Join or ensuring join keys are indexed.`);
+    }
+
+    if (nodeType === 'Sort' && rows > 1000) {
+      suggestions.push(`↕️ Sort on large rows. Try to reduce rows before sort or add indexes that support ordering.`);
+    }
+
+    if (nodeType === 'Aggregate' && rows > 10000) {
+      suggestions.push(`📊 Expensive aggregation on ${rows} rows. Consider materializing data or filtering earlier.`);
+    }
+
+    if (nodeType === 'Hash Join' && actualTime > 10) {
+      suggestions.push(`🧮 Hash Join is slow. Check if join keys are indexed or reduce dataset size before join.`);
+    }
+
+    if (nodeType === 'Index Scan' && indexName && actualTime > 10) {
+      suggestions.push(`📁 Index Scan using "${indexName}" is slow. Consider index optimization or better filtering.`);
+    }
+
+    if (nodeType === 'CTE Scan' && actualTime > 5) {
+      suggestions.push(`📦 CTE Scan is taking time. Inline the CTE if it’s used only once or materialize if reused.`);
+    }
+
+    if (nodeType === 'Subquery Scan' && actualTime > 5) {
+      suggestions.push(`🔄 Subquery Scan is slow. Consider converting to JOIN or ensuring subquery is efficient.`);
+    }
+
+    if (filter.includes('OR')) {
+      suggestions.push(`⚠️ Using OR in filters can prevent index usage. Try rewriting with UNION or using indexed expressions.`);
+    }
+    console.log(nodeType);
+    return suggestions;
   };
 
   try {
-    // Try EXPLAIN (ANALYZE, FORMAT JSON)
     let plan;
     try {
       console.log('Running EXPLAIN (ANALYZE, VERBOSE, FORMAT JSON)...');
@@ -19,70 +70,66 @@ export const analyzeSubqueries = async (db, query) => {
       console.warn('JSON EXPLAIN failed:', jsonErr.message);
     }
 
-    // Extract subqueries from plan
     const planSubqueries = [];
     const extractSubplans = (node, parentNode = null, level = 0) => {
       if (!node || typeof node !== 'object') return;
 
       const planNode = node.Plan || node;
-      console.log(planNode)
       const nodeType = planNode['Node Type'];
-      //const name = `subquery_${planSubqueries.length + 1}`;
-      const name = planNode['Alias'] || planNode['CTE Name'] || planNode['Subplan Name'] || `subquery_${planSubqueries.length + 1}`;  // need to check for more cases
-      //const isSubquery = nodeType === 'Subquery Scan' || nodeType === 'CTE Scan' || nodeType === 'InitPlan';    // need to check for more cases
+      const name = planNode['Alias'] || planNode['CTE Name'] || planNode['Subplan Name'] || `subquery_${planSubqueries.length + 1}`;
+
       const subqueryInfo = {
         name,
         nodeType,
-        //cost: planNode['Total Cost'] || 0,
         actualTime: planNode['Actual Total Time'] || 0,
         rows: planNode['Actual Rows'] || 0,
       };
 
+      const suggestions = generateSuggestion(planNode);
+
       results.results.push({
         name,
-        // sql: subqueryInfo.sql,
         explain: [
           { '': `Subquery: ${name}` },
           { '': `  -> ${nodeType || 'Unknown'}` },
-          // { '': `      Cost: ${subqueryInfo.cost.toFixed(2)}` },
           { '': `      Rows: ${subqueryInfo.rows}` },
           { '': `      Execution Time: ${subqueryInfo.actualTime.toFixed(3)} ms` },
         ],
-        // isBottleneck: subqueryInfo.isBottleneck,
-        // cost: subqueryInfo.cost,
         actualTime: subqueryInfo.actualTime,
         rows: subqueryInfo.rows,
+        suggestions,
       });
 
       planSubqueries.push(subqueryInfo);
-      //console.log(`Detected subquery (level ${level}):`, subqueryInfo);
 
-      // Traverse nested Plans and InitPlans
       if (planNode['Plans']) {
-        console.log(`Node ${name} has ${planNode['Plans'].length} child plans`);
         planNode['Plans'].forEach((child) => extractSubplans(child, planNode, level + 1));
       }
     };
 
-    // Start extraction of subqueries
     console.log('Extracting subplans...');
     extractSubplans(plan);
 
-    // Ensure main query is included if no subqueries     !results.results.length
     if (!results.results.length) {
-      console.log('No subqueries found, adding main query');  //include main query
+      console.log('No subqueries found, adding main query');
       const executionTime = plan['Execution Time'] || 0;
       results.results.push({
         name: 'main_query',
-        // sql: 'Unknown',
         explain: [{ '': `Execution Time: ${executionTime} ms` }],
-        // isBottleneck: false,
         actualTime: executionTime,
         rows: plan.Plan?.['Actual Rows'] || 0,
+        suggestions: generateSuggestion(plan.Plan || {}),
       });
     }
 
-    // console.log('Final results:', JSON.stringify(results, null, 2));
+    // Identify and flag the bottleneck
+    const bottleneck = results.results.reduce((max, r) =>
+      (r.actualTime > (max?.actualTime || 0)) ? r : max, null);
+    if (bottleneck) {
+      bottleneck.isBottleneck = true;
+      bottleneck.suggestions.push("🔥 This is the most time-consuming part of the query.");
+    }
+
     return results;
   } catch (err) {
     console.error('Analysis failed:', err);
