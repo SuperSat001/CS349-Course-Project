@@ -1,152 +1,91 @@
-import { parse, toSql, astVisitor } from 'pgsql-ast-parser';
-
-const extractSubqueries = (ast) => {
-  const subqueries = [];
-  let subqueryCounter = 0;
-
-  const visitor = astVisitor((map) => ({
-    // Handle CTEs in WITH clauses
-    with: (w) => {
-      console.log("Visiting WITH clause:", w);
-      if (w.bind) {
-        w.bind.forEach((cte) => {
-          if (cte.statement && cte.statement.type === 'select') {
-            subqueryCounter++;
-            const subquerySql = toSql.statement(cte.statement);
-            subqueries.push({
-              name: cte.alias.name || `cte_${subqueryCounter}`,
-              sql: subquerySql,
-            });
-            console.log(`Found CTE: ${subquerySql}`);
-          }
-        });
-      }
-      map.super().with(w);
-    },
-
-    // Handle subqueries in FROM clauses
-    from: (f) => {
-      console.log("Visiting FROM clause:", f);
-      const fromItems = Array.isArray(f) ? f : f ? [f] : [];
-      fromItems.forEach((fromItem) => {
-        if (fromItem.type === 'statement' && fromItem.statement.type === 'select') {
-          subqueryCounter++;
-          const subquerySql = toSql.statement(fromItem.statement);
-          subqueries.push({
-            name: fromItem.alias || `subquery_${subqueryCounter}`,
-            sql: subquerySql,
-          });
-          console.log(`Found FROM subquery: ${subquerySql}`);
-        }
-      });
-      map.super().from(f);
-    },
-
-    // Handle subqueries in WHERE clauses
-    where: (w) => {
-      console.log("Visiting WHERE clause:", w);
-      if (w) {
-        if (w.type === 'binary' && w.op === 'IN' && w.right && w.right.type === 'select') {
-          subqueryCounter++;
-          const subquerySql = toSql.statement(w.right);
-          subqueries.push({
-            name: `subquery_${subqueryCounter}`,
-            sql: subquerySql,
-          });
-          console.log(`Found IN subquery: ${subquerySql}`);
-        } else if (w.type === 'call' && w.function.name === 'exists' && w.args[0].type === 'select') {
-          subqueryCounter++;
-          const subquerySql = toSql.statement(w.args[0]);
-          subqueries.push({
-            name: `subquery_${subqueryCounter}`,
-            sql: subquerySql,
-          });
-          console.log(`Found EXISTS subquery: ${subquerySql}`);
-        }
-      }
-      map.super().where(w); // Rely on natural recursion
-    },
-
-    // Handle subqueries in SELECT clause (columns)
-    select: (s) => {
-      console.log("Visiting SELECT clause:", s);
-      if (s && s.columns) {
-        s.columns.forEach((col) => {
-          if (col.expr && col.expr.type === 'select') {
-            subqueryCounter++;
-            const subquerySql = toSql.statement(col.expr);
-            subqueries.push({
-              name: `subquery_${subqueryCounter}`,
-              sql: subquerySql,
-            });
-            console.log(`Found SELECT subquery: ${subquerySql}`);
-          }
-        });
-      }
-      map.super().select(s);
-    },
-    // Handle subqueries in JOIN clauses
-    join: (j) => {
-      console.log("Visiting JOIN clause:", j);
-      if (j && j.right && j.right.type === 'select') {
-        subqueryCounter++;
-        const subquerySql = toSql.statement(j.right);
-        subqueries.push({
-          name: `subquery_${subqueryCounter}`,
-          sql: subquerySql,
-        });
-        console.log(`Found JOIN subquery: ${subquerySql}`);
-      }
-      map.super().join(j);
-    },
-
-    // // Log all SELECT statements
-    // statement: (s) => {
-    //   console.log("Visiting statement:", s);
-    //   if (s.type === 'select') {
-    //     console.log("Processing SELECT statement:", toSql.statement(s));
-    //   }
-    //   map.super().statement(s);
-    // },
-  }));
-
-  console.log("Starting AST traversal...");
-  if (Array.isArray(ast)) {
-    ast.forEach((statement) => {
-      console.log("Traversing statement:", toSql.statement(statement));
-      visitor.statement(statement);
-    });
-  } else {
-    console.log("Traversing single statement:", toSql.statement(ast));
-    visitor.statement(ast);
-  }
-
-  console.log("Extracted subqueries:", subqueries);
-  return subqueries;
-};
-
 export const analyzeSubqueries = async (db, query) => {
-  const results = [];
-  try {
-    const parsed = parse(query); // Parse the SQL query into an AST
-    console.log("Parsed AST:", parsed);
-    const ast = Array.isArray(parsed) ? parsed : [parsed];
-    console.log("Input AST:", JSON.stringify(parsed, null, 2));
-    const subqueries = extractSubqueries(parsed); // Extract subqueries
-    console.log("Extracted Subqueries:", subqueries);
+  // console.log('Analyzing query:', query);
+  const results = {
+    results: [],
+  };
 
-    for (const subquery of subqueries) {
-      try {
-        console.log("Subquery SQL:", subquery.sql);
-        const explain = await db.query(`EXPLAIN ANALYZE ${subquery.sql}`);
-        results.push({ name: subquery.name, sql: subquery.sql, explain: explain.rows });
-      } catch (err) {
-        results.push({ name: subquery.name, sql: subquery.sql, error: err.message });
+  try {
+    // Try EXPLAIN (ANALYZE, FORMAT JSON)
+    let plan;
+    try {
+      console.log('Running EXPLAIN (ANALYZE, VERBOSE, FORMAT JSON)...');
+      const explainResult = await db.query(`EXPLAIN (ANALYZE, VERBOSE, FORMAT JSON) ${query}`);
+      const planData = explainResult.rows[0];
+      if (!planData || !planData['QUERY PLAN']) {
+        throw new Error('No valid QUERY PLAN in EXPLAIN output');
       }
+      plan = planData['QUERY PLAN'][0];
+    } catch (jsonErr) {
+      console.warn('JSON EXPLAIN failed:', jsonErr.message);
     }
-    return { ast, subqueries, results };
+
+    // Extract subqueries from plan
+    const planSubqueries = [];
+    const extractSubplans = (node, parentNode = null, level = 0) => {
+      if (!node || typeof node !== 'object') return;
+
+      const planNode = node.Plan || node;
+      console.log(planNode)
+      const nodeType = planNode['Node Type'];
+      //const name = `subquery_${planSubqueries.length + 1}`;
+      const name = planNode['Alias'] || planNode['CTE Name'] || planNode['Subplan Name'] || `subquery_${planSubqueries.length + 1}`;  // need to check for more cases
+      //const isSubquery = nodeType === 'Subquery Scan' || nodeType === 'CTE Scan' || nodeType === 'InitPlan';    // need to check for more cases
+      const subqueryInfo = {
+        name,
+        nodeType,
+        //cost: planNode['Total Cost'] || 0,
+        actualTime: planNode['Actual Total Time'] || 0,
+        rows: planNode['Actual Rows'] || 0,
+      };
+
+      results.results.push({
+        name,
+        // sql: subqueryInfo.sql,
+        explain: [
+          { '': `Subquery: ${name}` },
+          { '': `  -> ${nodeType || 'Unknown'}` },
+          // { '': `      Cost: ${subqueryInfo.cost.toFixed(2)}` },
+          { '': `      Rows: ${subqueryInfo.rows}` },
+          { '': `      Execution Time: ${subqueryInfo.actualTime.toFixed(3)} ms` },
+        ],
+        // isBottleneck: subqueryInfo.isBottleneck,
+        // cost: subqueryInfo.cost,
+        actualTime: subqueryInfo.actualTime,
+        rows: subqueryInfo.rows,
+      });
+
+      planSubqueries.push(subqueryInfo);
+      //console.log(`Detected subquery (level ${level}):`, subqueryInfo);
+
+      // Traverse nested Plans and InitPlans
+      if (planNode['Plans']) {
+        console.log(`Node ${name} has ${planNode['Plans'].length} child plans`);
+        planNode['Plans'].forEach((child) => extractSubplans(child, planNode, level + 1));
+      }
+    };
+
+    // Start extraction of subqueries
+    console.log('Extracting subplans...');
+    extractSubplans(plan);
+
+    // Ensure main query is included if no subqueries     !results.results.length
+    if (!results.results.length) {
+      console.log('No subqueries found, adding main query');  //include main query
+      const executionTime = plan['Execution Time'] || 0;
+      results.results.push({
+        name: 'main_query',
+        // sql: 'Unknown',
+        explain: [{ '': `Execution Time: ${executionTime} ms` }],
+        // isBottleneck: false,
+        actualTime: executionTime,
+        rows: plan.Plan?.['Actual Rows'] || 0,
+      });
+    }
+
+    // console.log('Final results:', JSON.stringify(results, null, 2));
+    return results;
   } catch (err) {
-    console.error("Query parsing or execution failed:", err);
-    throw new Error(`Failed to parse query: ${err.message}`);
+    console.error('Analysis failed:', err);
+    throw new Error(`Failed to analyze query: ${err.message}`);
   }
 };

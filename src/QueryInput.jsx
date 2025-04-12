@@ -1,37 +1,53 @@
+// src/QueryInput.jsx
 import { useState } from 'react';
 import { usePGlite } from '@electric-sql/pglite-react';
 import { analyzeSubqueries } from './QueryLogic';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList } from 'recharts';
 
 const parseExecutionTime = (explain) => {
+  // console.log('Parsing explain:', explain);
   const line = explain.find(row => Object.values(row)[0].includes('Execution Time'));
   if (line) {
     const match = Object.values(line)[0].match(/Execution Time: ([0-9.]+) ms/);
-    if (match) return parseFloat(match[1]);
+    const time = match ? parseFloat(match[1]) : 0;
+    console.log('Parsed time:', time);
+    return time;
   }
   return 0;
 };
 
 const QueryInput = () => {
   const db = usePGlite();
+  // console.log('PGlite DB:', db);
   const [query, setQuery] = useState("");
   const [explainResults, setExplainResults] = useState([]);
   const [error, setError] = useState(null);
 
   const handleAnalyze = async () => {
+    console.log('Handling analyze with query:', query);
     setError(null);
+    setExplainResults([]);
     if (!query.trim()) {
       setError("Please enter a query");
+      console.log('Error: Empty query');
+      return;
+    }
+    if (!db) {
+      setError("Database not initialized");
+      console.log('Error: No database');
       return;
     }
 
     try {
       const { results } = await analyzeSubqueries(db, query);
+      //console.log('Received results:', JSON.stringify(results, null, 2));
       setExplainResults(results);
     } catch (err) {
-      setError(err.message);
+      console.error('Analyze error:', err);
+      setError(err.message || 'Failed to analyze query');
     }
   };
+
 
   const chartData = explainResults
     .filter(r => !r.error)
@@ -39,6 +55,7 @@ const QueryInput = () => {
       name: r.name,
       time: parseExecutionTime(r.explain),
     }));
+  console.log('Chart data:', chartData);
 
   return (
     <div className="p-6 text-white bg-gray-900 min-h-screen">
@@ -49,14 +66,21 @@ const QueryInput = () => {
         className="w-full p-2 rounded bg-gray-800 border border-gray-600 text-white font-mono"
         placeholder="Enter SQL query..."
       />
-      <button
-        onClick={handleAnalyze}
-        className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
-      >
-        Analyze Subqueries
-      </button>
+      <div className="mt-2">
+        <button
+          onClick={handleAnalyze}
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
+          disabled={!db}
+        >
+          Analyze Subqueries
+        </button>
+      </div>
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
+
+      {explainResults.length === 0 && !error && query.trim() && (
+        <p className="text-yellow-500 mt-2">No subqueries detected or analysis failed. Check console for details.</p>
+      )}
 
       {chartData.length > 0 && (
         <div className="my-10">
@@ -77,19 +101,34 @@ const QueryInput = () => {
 
       <h3 className="text-xl font-bold mt-8 mb-4">Detailed Subquery Analysis</h3>
 
-      {explainResults.map((result, index) => (
-        <div key={index} className="bg-gray-800 text-gray-100 p-4 rounded-lg shadow-md mb-6">
-          <h4 className="text-yellow-300 font-bold text-lg mb-2">{result.name}</h4>
-          <code className="block text-blue-300 mb-4 whitespace-pre-wrap">{result.sql}</code>
-          {result.error ? (
-            <p className="text-red-400">Error: {result.error}</p>
-          ) : (
-            <pre className="text-sm font-mono text-gray-200 whitespace-pre-wrap">
-              {result.explain.map((row) => Object.values(row)[0]).join('\n')}
-            </pre>
-          )}
-        </div>
-      ))}
+      {explainResults.length > 0 ? (
+        explainResults.map((result, index) => (
+          <div
+            key={index}
+            className={`bg-gray-800 text-gray-100 p-4 rounded-lg shadow-md mb-6 ${result.isBottleneck ? 'border border-red-500' : ''}`}
+          >
+            <h4 className="text-yellow-300 font-bold text-lg mb-2">
+              {result.name} 
+            </h4>
+            <code className="block text-blue-300 mb-4 whitespace-pre-wrap">{result.sql}</code>
+            {result.error ? (
+              <p className="text-red-400">Error: {result.error}</p>
+            ) : (
+              <>
+                <div className="text-sm text-gray-400 mb-2">
+                  <p>Execution Time: {result.actualTime.toFixed(3)} ms</p>
+                  <p>Rows: {result.rows}</p>
+                </div>
+                <pre className="text-sm font-mono text-gray-200 whitespace-pre-wrap">
+                  {result.explain.map((row) => Object.values(row)[0]).join('\n')}
+                </pre>
+              </>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-400">No analysis results available.</p>
+      )}
     </div>
   );
 };
