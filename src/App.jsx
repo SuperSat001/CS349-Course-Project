@@ -16,6 +16,7 @@ import AssignmentListPage from './AssignmentListPage.jsx';
 import AddAssignmentPage from './AddAssignmentPage.jsx';
 import AssignmentAttemptPage from './AssignmentAttemptPage.jsx';
 import SchemaManager from './SchemaManager.jsx';
+import AssignmentEditPage from './AssignmentEditPage.jsx';
 import './App.css';
 
 function App() {
@@ -280,26 +281,27 @@ function App() {
           {studentDbMessage && <p className="container mx-auto my-2 p-2 text-sm message info">{studentDbMessage}</p>}
 
           <Routes>
-            {/* Pass state setters and values down as needed */}
+            {/* Course List */}
             <Route path="/" element={<CourseList setSelectedCourseId={setSelectedCourseId} selectedCourseId={selectedCourseId} />} />
 
-            {/* Assignment routes require selectedCourseId */}
+            {/* --- Instructor Assignment Management Routes --- */}
+            {/* List */}
             <Route path="/assignments" element={<AssignmentListPage selectedCourseId={selectedCourseId} />} />
+            {/* Add New */}
             <Route path="/assignments/new" element={<AddAssignmentPage selectedCourseId={selectedCourseId} />} />
-            {/* AssignmentAttemptPage needs the active student schema */}
-            <Route path="/assignments/:assignmentId" element={<AssignmentAttemptPage studentSchema={activeStudentSchema} selectedCourseId={selectedCourseId} />} />
+            {/* Edit Existing - Added this route */}
+            <Route path="/assignments/:assignmentId/edit" element={<AssignmentEditPage selectedCourseId={selectedCourseId} />} />
 
-            {/* Components requiring an active student schema */}
+            {/* --- Student Assignment Attempt Route --- */}
+            {/* Attempt specific assignment - Corrected path */}
+            <Route path="/assignments/:assignmentId/attempt" element={<AssignmentAttemptPage studentSchema={activeStudentSchema} selectedCourseId={selectedCourseId} />} />
+
+            {/* --- Other Tools/Pages --- */}
             <Route path="/browse" element={<Minimal studentSchema={activeStudentSchema} />} />
             <Route path="/query-planning" element={<QueryPlanning studentSchema={activeStudentSchema} />} />
+            <Route path="/load-database" element={<DatabaseLoader onReady={handleStudentDbLoad} selectedCourseId={selectedCourseId} />} />
 
-            {/* DatabaseLoader requires selectedCourseId */}
-            <Route
-              path="/load-database"
-              element={<DatabaseLoader onReady={handleStudentDbLoad} selectedCourseId={selectedCourseId} />}
-            />
-
-            {/* Fallback route */}
+            {/* Fallback Route */}
             <Route path="*" element={<CourseList setSelectedCourseId={setSelectedCourseId} selectedCourseId={selectedCourseId} />} />
           </Routes>
         </PGliteProvider>
