@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } // Import useCallback
 import { usePGlite } from '@electric-sql/pglite-react'
 import AddCourseForm from './AddCourseForm'; // Import the new form component
 
-const CourseList = () => {
+const CourseList = ({setSelectedCourseId,selectedCourseId}) => {
     const db = usePGlite ? usePGlite() : null;
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -86,7 +86,10 @@ const CourseList = () => {
             {!loading && courses.length > 0 && (
                 <ul>
                     {courses.map((course) => (
-                        <li key={course.instructor_course_id} className="listItem">
+                        <li key={course.instructor_course_id}
+                             className={`listItem ${selectedCourseId === course.instructor_course_id ? 'selectedCourse' : ''}`}
+                             onClick ={() => setSelectedCourseId(course.instructor_course_id)}
+                                style={{ cursor: 'pointer' }} >
                             <h3 className="text-xl font-semibold">{course.course_name || '(No Name)'}</h3>
                             <p className="text-sm text-gray-400 mb-1">
                                 ID: {course.instructor_course_id}
