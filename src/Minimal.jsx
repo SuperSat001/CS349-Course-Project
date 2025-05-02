@@ -1,180 +1,250 @@
 import { useState, useEffect } from 'react';
 import { usePGlite } from '@electric-sql/pglite-react';
 
-const InsertComponent = ({ table, columns }) => {
+// --- Insert Component ---
+// Props: schema (string), table (string), columns (array of strings)
+const InsertComponent = ({ schema, table, columns }) => {
   const db = usePGlite ? usePGlite() : null;
   const [values, setValues] = useState({});
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(''); // Message state for this component
+
+  // Reset input values when table or schema changes
+  useEffect(() => {
+    setValues({});
+    setMessage('');
+  }, [schema, table]);
 
   if (!db) return <p className="error">Database connection not available.</p>;
 
   const handleChange = (col, value) => setValues({ ...values, [col]: value });
 
   const insertRow = async () => {
-    setMessage('');
+    setMessage(''); // Clear previous message before starting
     const filledCols = columns.filter(col => values[col] !== undefined && values[col] !== '');
-    if (filledCols.length === 0) { setMessage("Please fill at least one column."); return; }
-
+    if (filledCols.length === 0) {
+      setMessage("Please fill at least one column.");
+      return;
+    }
     const colNames = filledCols.join(', ');
     const colValues = filledCols.map(col => {
         const val = values[col];
-        // Basic check for numeric values
-        return /^-?\d+(\.\d+)?$/.test(val) ? val : `'${String(val).replace(/'/g, "''")}'`; // Escape single quotes
+        // Basic type handling: assumes numbers/booleans or strings needing quotes
+        // This might need refinement based on actual column types if known
+        if (val === null || val === undefined || String(val).toUpperCase() === 'NULL') {
+            return 'NULL';
+        }
+        if (typeof val === 'boolean') {
+            return String(val);
+        }
+        if (/^-?\d+(\.\d+)?$/.test(val)) { // Check if it looks like a number
+            return val;
+        }
+        // Otherwise, treat as string and quote/escape it
+        return `'${String(val).replace(/'/g, "''")}'`; // Escape single quotes
     }).join(', ');
 
-    // Build the final INSERT query
-    const query = `INSERT INTO public.${table} (${colNames}) VALUES (${colValues});`;
+    // Construct query using schema and table name (no quoteIdent)
+    const query = `INSERT INTO ${schema}.${table} (${colNames}) VALUES (${colValues});`;
     console.log("Insert Query:", query);
-
     try {
       await db.query(query);
-      setMessage("Row inserted!");
-      setValues({}); // Clear the form on success
+      setMessage("Row inserted!"); // Set success message
+      setValues({}); // Clear form
     } catch (err) {
       console.error("Insert error:", err);
-      setMessage(`Insert failed: ${err.message}. See console.`);
+      setMessage(`Insert failed: ${err.message}. Check data types and constraints. See console.`); // Set error message
     }
   };
 
-  // Render the insert form
   return (
-    <div className="mt-6"> 
-      <h3 className="text-xl font-bold mb-2">Insert Row into {table}</h3>
-      {columns.map((col, idx) => (
-        <input
-          key={idx}
-          className="input my-1" 
-          placeholder={`Enter ${col}`}
-          value={values[col] || ''}
-          onChange={e => handleChange(col, e.target.value)}
-        />
-      ))}
-      <button
-        
-        className="button bg-green-600 text-white mt-2" 
-        onClick={insertRow}
-      >
-        Insert
-      </button>
-      
-      {message && <p className={`message mt-2 ${message.includes("failed") ? 'error' : 'success'}`}>{message}</p>}
+    <div className="mt-6">
+      <h3 className="text-xl font-bold mb-2">Insert Row into {schema}.{table}</h3>
+      {/* Render input only if columns are available */}
+      {columns && columns.length > 0 ? (
+         <>
+           {columns.map((col, idx) => (
+             <input
+               key={`${schema}-${table}-${col}-${idx}`} // More specific key
+               className="input my-1"
+               placeholder={`Enter ${col}`}
+               value={values[col] || ''}
+               onChange={e => handleChange(col, e.target.value)}
+             />
+           ))}
+           <button
+             className="button bg-green-600 text-white mt-2"
+             onClick={insertRow}
+           >
+             Insert
+           </button>
+         </>
+       ) : (
+         <p className="text-sm text-gray-400">Column information not available for insertion.</p>
+       )}
+      {/* Display the message */}
+      {message && <p className={`message mt-2 ${message.includes("failed") || message.includes("Please fill") ? 'error' : 'success'}`}>{message}</p>}
     </div>
   );
 };
 
-// Component to delete a row based on primary key.
-const DeleteComponent = ({ table, primaryKey }) => {
+// --- Delete Component ---
+// Props: schema (string), table (string), primaryKey (string or null)
+const DeleteComponent = ({ schema, table, primaryKey }) => {
   const db = usePGlite ? usePGlite() : null;
   const [pkValue, setPkValue] = useState('');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(''); // Message state for this component
+
+   // Reset input value when table, schema or primaryKey changes
+   useEffect(() => {
+     setPkValue('');
+     setMessage('');
+     if (primaryKey && message === "Cannot delete: Primary key not identified for this table.") {
+        // Clear persistent message if PK becomes available
+        setMessage('');
+    }
+   }, [schema, table, primaryKey]); // Add primaryKey dependency
 
   if (!db) return <p className="error">Database connection not available.</p>;
 
-  // Handle the delete operation
   const deleteRow = async () => {
-    setMessage('');
-    // Validate input and primary key
-    if (!pkValue) { setMessage("Enter primary key value"); return; }
-    if (!primaryKey) { setMessage("Cannot delete: Primary key not identified for this table."); return; }
+    setMessage(''); // Clear previous message before starting
+    if (!pkValue) {
+      setMessage("Enter primary key value");
+      return;
+    }
+    // primaryKey check happens before rendering input, but double check here
+    if (!primaryKey) {
+       setMessage("Cannot delete: Primary key not identified for this table.");
+       return;
+    }
 
-    // Simple quoting for string values
+    // Basic quoting for potential string PKs
     const valueStr = /^-?\d+(\.\d+)?$/.test(pkValue) ? pkValue : `'${String(pkValue).replace(/'/g, "''")}'`;
-    // Build the DELETE query
-    const query = `DELETE FROM public.${table} WHERE ${primaryKey} = ${valueStr};`;
+    // Construct query using schema and table name (no quoteIdent)
+    // Assume primaryKey name itself is a simple identifier
+    const query = `DELETE FROM ${schema}.${table} WHERE ${primaryKey} = ${valueStr};`;
     console.log("Delete Query:", query);
-
-    // Execute query and handle results/errors
     try {
       await db.query(query);
-      setMessage("Row deleted (if it existed)!");
-      setPkValue(''); // Clear input on success
+      setMessage("Row deleted (if it existed)!"); // Set success message
+      setPkValue(''); // Clear input
     } catch (err) {
       console.error("Delete error:", err);
-      setMessage(`Delete failed: ${err.message}. See console.`);
+      setMessage(`Delete failed: ${err.message}. See console.`); // Set error message
     }
   };
 
-  // Render the delete form
   return (
-    <div className="mt-6"> 
-      <h3 className="text-xl font-bold mb-2">Delete Row from {table}</h3>
-       
+    <div className="mt-6">
+      <h3 className="text-xl font-bold mb-2">Delete Row from {schema}.{table}</h3>
+       {/* Render input only if primaryKey is known */}
        {!primaryKey ? (
-         <p className="error">Primary key not determined for deletion.</p> 
+         <p className="text-sm text-gray-400">Primary key not determined for this table. Deletion disabled.</p>
        ) : (
          <>
           <input
-            
-            className="input my-1" // Changed from styles.input
+            className="input my-1"
             placeholder={`Enter value for primary key: ${primaryKey}`}
             value={pkValue}
             onChange={e => setPkValue(e.target.value)}
           />
           <button
-            
-            className="button bg-red-600 text-white" 
+            className="button bg-red-600 text-white"
             onClick={deleteRow}
           >
-            Delete
+            Delete by Primary Key
           </button>
          </>
        )}
-       
-       {message && <p className={`message mt-2 ${message.includes("failed") || message.includes("Cannot delete") ? 'error' : 'success'}`}>{message}</p>}
+       {/* Display the operation message */}
+       {message && message !== "Cannot delete: Primary key not identified for this table." && (
+            <p className={`message mt-2 ${message.includes("failed") || message.includes("Enter primary") ? 'error' : 'success'}`}>{message}</p>
+       )}
     </div>
   );
 };
 
-// Component to display table rows (limited).
-const DisplayComponent = ({ table }) => {
+
+// --- Display Component ---
+// Props: schema (string), table (string)
+const DisplayComponent = ({ schema, table }) => {
   const db = usePGlite ? usePGlite() : null;
   const [rows, setRows] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Error/Note state for this component
   const [loading, setLoading] = useState(false);
+
   if (!db) return <p className="error">Database connection not available.</p>;
 
-  // Fetch rows from the selected table
   const fetchRows = async () => {
-    setError(''); setLoading(true); setRows([]);
+    // Guard against running if schema/table aren't set (though parent should prevent)
+    if (!schema || !table) {
+        setError("Schema or table not selected.");
+        return;
+    }
+    setError('');
+    setLoading(true);
+    setRows([]); // Clear previous rows
     try {
-      // Limit rows to prevent performance issues
-      const result = await db.query(`SELECT * FROM public.${table} LIMIT 100;`);
+       // Construct query using schema and table name (no quoteIdent)
+      const query = `SELECT * FROM ${schema}.${table} LIMIT 100;`;
+      console.log("Display Query:", query);
+      const result = await db.query(query);
       setRows(result.rows);
-      // Notify if row limit was hit
-      if (result.rows.length === 100) { setError("Note: Display limited to the first 100 rows."); }
+
+      if (result.rows.length === 0) {
+        setError("No rows found or table is empty."); // Use error state for consistent display
+      } else if (result.rows.length === 100) {
+        setError("Note: Display limited to the first 100 rows."); // Use error state but style as warning
+      }
+      // If rows found and < 100, error state remains empty (success)
+
     } catch (err) {
-      console.error("Fetch error:", err); setError(`Fetch failed: ${err.message}`);
-    } finally { setLoading(false); }
+      console.error("Fetch error:", err);
+      setError(`Workspace failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Fetch rows when the table selection changes or db instance changes
-  useEffect(() => { if (table && db) { fetchRows(); } else { setRows([]); setError(''); } }, [table, db]);
+  // Fetch rows when schema, table, or db instance changes
+  useEffect(() => {
+    if (schema && table && db) {
+      fetchRows();
+    } else {
+      // Clear state if schema/table/db become unavailable
+      setRows([]);
+      setError('');
+      setLoading(false);
+    }
+  }, [schema, table, db]); // Dependencies
 
-  // Render the display table
   return (
-    <div className="mt-6"> 
-      <h3 className="text-xl font-bold mb-2">Displaying Rows from {table} (Max 100)</h3>
+    <div className="mt-6">
+      <h3 className="text-xl font-bold mb-2">Displaying Rows from {schema}.{table} (Max 100)</h3>
       <button
-        
-        className="button bg-blue-600 text-white mb-2" 
-        onClick={fetchRows}
-        disabled={loading}
+        className="button bg-blue-600 text-white mb-2"
+        onClick={fetchRows} // Allow manual refresh
+        disabled={loading || !schema || !table} // Disable if loading or no target
       >
         {loading ? 'Loading...' : 'Reload Rows'}
       </button>
-      
-      {error && <p className="error">{error}</p>} 
-      {rows.length === 0 && !loading && !error && <p>No rows found or table is empty.</p>}
-      
-      {rows.length > 0 && (
+
+      {/* Display status/error message */}
+      {error && (
+          <p className={`message mt-2 ${error.startsWith("Note:") ? 'warning' : error.startsWith("No rows") ? 'info' : 'error'}`}>
+              {error}
+          </p>
+      )}
+
+      {/* Render table only if rows exist and not loading */}
+      {!loading && rows.length > 0 && (
         <div className="overflow-x-auto">
-          
-          <table className="table"> 
+          <table className="table">
             <thead>
               <tr>
+                {/* Get headers from the first row */}
                 {Object.keys(rows[0]).map((key, i) => (
-                  
-                  <th key={i} className="th">{key}</th> // Changed from styles.th
+                  <th key={i} className="th">{key}</th>
                 ))}
               </tr>
             </thead>
@@ -182,7 +252,8 @@ const DisplayComponent = ({ table }) => {
               {rows.map((row, i) => (
                 <tr key={i}>
                   {Object.values(row).map((val, j) => (
-                    <td key={j} className="td text-center"> 
+                    <td key={j} className="td text-center">
+                      {/* Handle boolean display and nulls */}
                       {typeof val === 'boolean' ? String(val) : (val ?? 'NULL')}
                     </td>
                   ))}
@@ -195,113 +266,149 @@ const DisplayComponent = ({ table }) => {
     </div>
   );
 };
-
-const Minimal = () => {
+// --- Minimal Container Component ---
+// *** CHANGE: Accept studentSchema prop ***
+const Minimal = ({ studentSchema }) => {
   const db = usePGlite ? usePGlite() : null;
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState('');
   const [columns, setColumns] = useState([]);
   const [primaryKey, setPrimaryKey] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Error state for this component
 
+  // Effect to fetch tables from the *studentSchema* when it changes or db connection is ready
   useEffect(() => {
-      if (!db) {
-          setError("Database connection not available for Minimal browser. Please load data first.");
-      } else {
-          setError(''); // Clear error if db becomes available
-      }
-  }, [db]);
+      const fetchTables = async () => {
+          if (!db || !studentSchema) { // Check for both db and schema
+              setTables([]); // Clear tables if no schema or db
+              return;
+          }
+          setError(''); // Clear previous errors
+          try {
+              // *** CHANGE: Query information_schema using studentSchema ***
+              const res = await db.query(
+                  `SELECT table_name FROM information_schema.tables
+                   WHERE table_schema = $1 AND table_type = 'BASE TABLE'
+                   ORDER BY table_name;`,
+                  [studentSchema] // Pass schema name as parameter
+              );
+              setTables(res.rows.map(r => r.table_name));
+              if (res.rows.length === 0) {
+                  setError(`No tables found in schema '${studentSchema}'.`);
+              }
+          } catch (err) {
+              console.error(`Error fetching tables for schema ${studentSchema}:`, err);
+              setError(`Error fetching tables: ${err.message}`);
+              setTables([]); // Clear tables on error
+          }
+      };
+      fetchTables();
+       // Reset selected table when schema changes
+      setSelectedTable('');
+      setColumns([]);
+      setPrimaryKey('');
+  // *** CHANGE: Add studentSchema to dependency array ***
+  }, [db, studentSchema]);
 
-  useEffect(() => {
-    const fetchTables = async () => {
-      if (!db) return; // Guard against missing db
-      setError(prev => prev === "Database connection not available for Minimal browser. Please load data first." ? '' : prev);
-      try {
-        const res = await db.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY table_name;`);
-        setTables(res.rows.map(r => r.table_name));
-      } catch (err) {
-        console.error("Error fetching tables:", err); setError(`Error fetching tables: ${err.message}`);
-      }
-    };
-    if (db) fetchTables(); // Only fetch if db exists
-  }, [db]);
-
-  // Fetch columns and primary key for the selected table
+  // Effect to fetch columns and primary key for the selected table within the studentSchema
   useEffect(() => {
     const fetchSchema = async () => {
-      if (!selectedTable || !db) return; // Guard against missing db/table
-      setError(prev => (prev && !prev.startsWith("Note:")) ? '' : prev);
+      // *** CHANGE: Check for studentSchema ***
+      if (!selectedTable || !db || !studentSchema) return;
+      setError(prev => (prev && !prev.startsWith("Note:")) ? '' : prev); // Clear some previous errors
       setColumns([]);
       setPrimaryKey('');
 
       try {
-        // Get column names
-        const colRes = await db.query(`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position;`, [selectedTable]);
+         // *** CHANGE: Query information_schema using studentSchema ***
+        const colRes = await db.query(
+            `SELECT column_name FROM information_schema.columns
+             WHERE table_schema = $1 AND table_name = $2
+             ORDER BY ordinal_position;`,
+            [studentSchema, selectedTable]
+        );
         setColumns(colRes.rows.map(r => r.column_name));
 
-        // Try to find the primary key
+        // *** CHANGE: Query pg_catalog using studentSchema ***
         const pkRes = await db.query(`
           SELECT a.attname as column_name
-          FROM   pg_index i
-          JOIN   pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
-          JOIN   pg_class t ON t.oid = i.indrelid
-          JOIN   pg_namespace n ON n.oid = t.relnamespace
-          WHERE  i.indisprimary
-          AND    t.relname = $1
-          AND    n.nspname = 'public';
-        `, [selectedTable]);
+          FROM   pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+          JOIN   pg_class t ON t.oid = i.indrelid JOIN pg_namespace n ON n.oid = t.relnamespace
+          WHERE  i.indisprimary AND t.relname = $1 AND n.nspname = $2;
+        `, [selectedTable, studentSchema]); // Pass schema name here
 
-        // Handle PK result
         if (pkRes.rows.length === 1) {
             setPrimaryKey(pkRes.rows[0].column_name);
         } else if (pkRes.rows.length > 1) {
-            setPrimaryKey(''); // Clear PK if composite
-            setError("Note: Deletion disabled for tables with composite primary keys in this view.");
+             setPrimaryKey('');
+             setError("Note: Deletion disabled for tables with composite primary keys in this view.");
         } else {
-             setPrimaryKey(''); // No PK found
+             setPrimaryKey('');
+             // Don't set an error here, PK might just not exist
         }
       } catch (err) {
-        console.error("Error fetching schema:", err); setError(`Error fetching schema for ${selectedTable}: ${err.message}`);
+        console.error(`Error fetching schema details for ${studentSchema}.${selectedTable}:`, err);
+        setError(`Error fetching schema details: ${err.message}`);
       }
     };
-    if (db && selectedTable) fetchSchema(); // Only fetch if db and table selected
-  }, [selectedTable, db]);
+    // *** CHANGE: Add studentSchema to dependency array ***
+    if (db && selectedTable && studentSchema) fetchSchema();
+  }, [selectedTable, db, studentSchema]);
 
-  // Render the Minimal browser UI
+  const handleTableChange = (e) => {
+      setSelectedTable(e.target.value);
+      setError(''); // Clear main error on table change
+      // Child component state reset is handled by the key prop below
+  };
+
+  // --- Render Logic ---
   return (
-    
-    <div className="container"> 
-      <h2 className="heading">Database Browser</h2> 
+    <div className="container">
+      {/* *** CHANGE: Update heading based on schema *** */}
+      <h2 className="heading">
+          Database Browser {studentSchema ? `(Schema: ${studentSchema})` : '(No Student DB Loaded)'}
+      </h2>
 
-      
-      {error && <p className="error">{error}</p>} 
+      {/* Show message if no student schema is loaded */}
+      {!studentSchema && (
+          <p className="message warning">
+              Please load a student/exam database using the "Load Student DB" link first to browse its tables.
+          </p>
+      )}
 
-      
-      {usePGlite ? (
+      {/* Display errors related to table/schema fetching */}
+      {error && <p className={error.startsWith("Note:") ? "message warning" : "error"}>{error}</p>}
+
+      {/* Only show browser UI if a student schema is loaded */}
+      {db && studentSchema && (
         <>
-          <label className="block mb-1 font-semibold">Select Table</label>
+          <label className="block mb-1 font-semibold">Select Table from '{studentSchema}'</label>
           <select
-            
-            className="input" // Changed from styles.input
+            className="input"
             value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value)}
-            disabled={!db} // Disable only if db connection is missing
+            onChange={handleTableChange}
+            disabled={tables.length === 0} // Disable if no tables found/loaded
           >
             <option value="">-- Choose a table --</option>
             {tables.map((table, idx) => (<option key={idx} value={table}>{table}</option>))}
           </select>
-          
-          {selectedTable && db && (
-            <>
-              <InsertComponent table={selectedTable} columns={columns} />
-              <DeleteComponent table={selectedTable} primaryKey={primaryKey} />
-              <DisplayComponent table={selectedTable} />
-            </>
+
+          {/* Render CRUD components only if a table is selected */}
+          {/* Pass schema name down to children */}
+          {/* Key forces remount on table OR schema change */}
+          {selectedTable && (
+            <div key={`${studentSchema}-${selectedTable}`}>
+              <InsertComponent schema={studentSchema} table={selectedTable} columns={columns} />
+              <DeleteComponent schema={studentSchema} table={selectedTable} primaryKey={primaryKey} />
+              <DisplayComponent schema={studentSchema} table={selectedTable} />
+            </div>
           )}
         </>
-      ) : (
-        <p className="error">PGLite React bindings (usePGlite) not found.</p>
       )}
+      {/* Show this if PGlite itself failed to load */}
+       {!usePGlite && (
+         <p className="error">PGLite React bindings (usePGlite) not found.</p>
+       )}
     </div>
   );
 };
