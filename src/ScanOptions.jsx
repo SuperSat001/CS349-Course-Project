@@ -86,8 +86,24 @@ const ScanOptions = () => {
   return (
     <div className="mt-6 p-4 border border-gray-700 rounded-lg">
       <h3 className="text-lg font-semibold mb-2">Scan Preference Options</h3>
-      <p className="text-sm mb-3">Current Scan Preference: <strong>{currentScan}</strong></p>
-      <div className="flex flex-wrap gap-2">
+      <p className="text-sm mb-3">Current Scan Preference: <strong
+        style={{
+          fontWeight: '600',
+          color: '#10b981', // emerald green
+          backgroundColor: '#064e3b',
+          padding: '2px 8px',
+          borderRadius: '6px',
+          fontSize: '0.95em',
+        }}
+      >
+        {currentScan}</strong></p>
+      {/* <div className="flex flex-wrap gap-2"> */}
+      <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    flexWrap: 'wrap',
+                    // width: 100%,
+                  }}>
         <button
           className="button text-sm bg-teal-600 hover:bg-teal-700 text-white" 
           onClick={() => forceScanType("seqscan")}

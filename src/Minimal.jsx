@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePGlite } from '@electric-sql/pglite-react';
+import { saveAs } from 'file-saver';
 
 // --- Insert Component ---
 // Props: schema (string), table (string), columns (array of strings)
@@ -268,118 +269,143 @@ const DisplayComponent = ({ schema, table }) => {
 };
 // --- Minimal Container Component ---
 // *** CHANGE: Accept studentSchema prop ***
+const convertToCSV = (rows, columns) => {
+  const header = columns.join(',');
+  const body = rows.map(row => columns.map(col => {
+    const value = row[col] ?? 'NULL';
+    return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+  }).join(','));
+
+  return [header, ...body].join('\n');
+};
+
+// --- Minimal Container Component ---
 const Minimal = ({ studentSchema }) => {
   const db = usePGlite ? usePGlite() : null;
   const [tables, setTables] = useState([]);
   const [selectedTable, setSelectedTable] = useState('');
   const [columns, setColumns] = useState([]);
   const [primaryKey, setPrimaryKey] = useState('');
-  const [error, setError] = useState(''); // Error state for this component
+  const [error, setError] = useState('');
+  const [csvName, setCsvName] = useState(''); // State for CSV file name
 
-  // Effect to fetch tables from the *studentSchema* when it changes or db connection is ready
+  // Effect to fetch tables from the studentSchema when it changes or db connection is ready
   useEffect(() => {
-      const fetchTables = async () => {
-          if (!db || !studentSchema) { // Check for both db and schema
-              setTables([]); // Clear tables if no schema or db
-              return;
-          }
-          setError(''); // Clear previous errors
-          try {
-              // *** CHANGE: Query information_schema using studentSchema ***
-              const res = await db.query(
-                  `SELECT table_name FROM information_schema.tables
-                   WHERE table_schema = $1 AND table_type = 'BASE TABLE'
-                   ORDER BY table_name;`,
-                  [studentSchema] // Pass schema name as parameter
-              );
-              setTables(res.rows.map(r => r.table_name));
-              if (res.rows.length === 0) {
-                  setError(`No tables found in schema '${studentSchema}'.`);
-              }
-          } catch (err) {
-              console.error(`Error fetching tables for schema ${studentSchema}:`, err);
-              setError(`Error fetching tables: ${err.message}`);
-              setTables([]); // Clear tables on error
-          }
-      };
-      fetchTables();
-       // Reset selected table when schema changes
-      setSelectedTable('');
-      setColumns([]);
-      setPrimaryKey('');
-  // *** CHANGE: Add studentSchema to dependency array ***
+    const fetchTables = async () => {
+      if (!db || !studentSchema) {
+        setTables([]);
+        return;
+      }
+      setError('');
+      try {
+        const res = await db.query(
+          `SELECT table_name FROM information_schema.tables
+           WHERE table_schema = $1 AND table_type = 'BASE TABLE'
+           ORDER BY table_name;`,
+          [studentSchema]
+        );
+        setTables(res.rows.map(r => r.table_name));
+        if (res.rows.length === 0) {
+          setError(`No tables found in schema '${studentSchema}'.`);
+        }
+      } catch (err) {
+        console.error(`Error fetching tables for schema ${studentSchema}:`, err);
+        setError(`Error fetching tables: ${err.message}`);
+        setTables([]);
+      }
+    };
+    fetchTables();
+    setSelectedTable('');
+    setColumns([]);
+    setPrimaryKey('');
   }, [db, studentSchema]);
 
   // Effect to fetch columns and primary key for the selected table within the studentSchema
   useEffect(() => {
     const fetchSchema = async () => {
-      // *** CHANGE: Check for studentSchema ***
       if (!selectedTable || !db || !studentSchema) return;
-      setError(prev => (prev && !prev.startsWith("Note:")) ? '' : prev); // Clear some previous errors
+      setError(prev => (prev && !prev.startsWith("Note:")) ? '' : prev);
       setColumns([]);
       setPrimaryKey('');
-
       try {
-         // *** CHANGE: Query information_schema using studentSchema ***
         const colRes = await db.query(
-            `SELECT column_name FROM information_schema.columns
-             WHERE table_schema = $1 AND table_name = $2
-             ORDER BY ordinal_position;`,
-            [studentSchema, selectedTable]
+          `SELECT column_name FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = $2
+           ORDER BY ordinal_position;`,
+          [studentSchema, selectedTable]
         );
         setColumns(colRes.rows.map(r => r.column_name));
 
-        // *** CHANGE: Query pg_catalog using studentSchema ***
         const pkRes = await db.query(`
           SELECT a.attname as column_name
           FROM   pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
           JOIN   pg_class t ON t.oid = i.indrelid JOIN pg_namespace n ON n.oid = t.relnamespace
           WHERE  i.indisprimary AND t.relname = $1 AND n.nspname = $2;
-        `, [selectedTable, studentSchema]); // Pass schema name here
+        `, [selectedTable, studentSchema]);
 
         if (pkRes.rows.length === 1) {
-            setPrimaryKey(pkRes.rows[0].column_name);
+          setPrimaryKey(pkRes.rows[0].column_name);
         } else if (pkRes.rows.length > 1) {
-             setPrimaryKey('');
-             setError("Note: Deletion disabled for tables with composite primary keys in this view.");
+          setPrimaryKey('');
+          setError("Note: Deletion disabled for tables with composite primary keys in this view.");
         } else {
-             setPrimaryKey('');
-             // Don't set an error here, PK might just not exist
+          setPrimaryKey('');
         }
       } catch (err) {
         console.error(`Error fetching schema details for ${studentSchema}.${selectedTable}:`, err);
         setError(`Error fetching schema details: ${err.message}`);
       }
     };
-    // *** CHANGE: Add studentSchema to dependency array ***
     if (db && selectedTable && studentSchema) fetchSchema();
   }, [selectedTable, db, studentSchema]);
 
   const handleTableChange = (e) => {
-      setSelectedTable(e.target.value);
-      setError(''); // Clear main error on table change
-      // Child component state reset is handled by the key prop below
+    setSelectedTable(e.target.value);
+    setError('');
   };
 
-  // --- Render Logic ---
+  // Fetch rows for selected table
+  const fetchRows = async () => {
+    if (!schema || !table) return;
+    try {
+      const query = `SELECT * FROM ${schema}.${table} LIMIT 100;`;
+      const result = await db.query(query);
+      setRows(result.rows);
+    } catch (err) {
+      setError('Failed to fetch rows');
+    }
+  };
+
+  // Convert to CSV handler
+  const handleConvertToCSV = async () => {
+    if (!selectedTable || !columns.length) {
+      setError('Please select a table and wait for the columns to load.');
+      return;
+    }
+    try {
+      const query = `SELECT * FROM ${studentSchema}.${selectedTable};`;
+      const result = await db.query(query);
+      const csvContent = convertToCSV(result.rows, columns);
+      
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      saveAs(blob, `${csvName || selectedTable}.csv`);
+    } catch (err) {
+      setError('Error exporting to CSV.');
+    }
+  };
+
   return (
     <div className="container">
-      {/* *** CHANGE: Update heading based on schema *** */}
-      <h2 className="heading">
-          Database Browser {studentSchema ? `(Schema: ${studentSchema})` : '(No Student DB Loaded)'}
-      </h2>
+      <h2 className="heading">Database Browser {studentSchema ? `(Schema: ${studentSchema})` : '(No Student DB Loaded)'}</h2>
 
-      {/* Show message if no student schema is loaded */}
       {!studentSchema && (
-          <p className="message warning">
-              Please load a student/exam database using the "Load Student DB" link first to browse its tables.
-          </p>
+        <p className="message warning">
+          Please load a student/exam database using the "Load Student DB" link first to browse its tables.
+        </p>
       )}
 
-      {/* Display errors related to table/schema fetching */}
       {error && <p className={error.startsWith("Note:") ? "message warning" : "error"}>{error}</p>}
 
-      {/* Only show browser UI if a student schema is loaded */}
       {db && studentSchema && (
         <>
           <label className="block mb-1 font-semibold">Select Table from '{studentSchema}'</label>
@@ -387,28 +413,42 @@ const Minimal = ({ studentSchema }) => {
             className="input"
             value={selectedTable}
             onChange={handleTableChange}
-            disabled={tables.length === 0} // Disable if no tables found/loaded
+            disabled={tables.length === 0}
           >
             <option value="">-- Choose a table --</option>
             {tables.map((table, idx) => (<option key={idx} value={table}>{table}</option>))}
           </select>
 
-          {/* Render CRUD components only if a table is selected */}
-          {/* Pass schema name down to children */}
-          {/* Key forces remount on table OR schema change */}
           {selectedTable && (
             <div key={`${studentSchema}-${selectedTable}`}>
               <InsertComponent schema={studentSchema} table={selectedTable} columns={columns} />
               <DeleteComponent schema={studentSchema} table={selectedTable} primaryKey={primaryKey} />
               <DisplayComponent schema={studentSchema} table={selectedTable} />
+              
+              <div className="mt-6">
+                <h3 className="text-xl font-bold mb-2">Export Table to CSV</h3>
+                <input
+                  type="text"
+                  placeholder="Enter CSV file name"
+                  value={csvName}
+                  onChange={e => setCsvName(e.target.value)}
+                  className="input my-1"
+                />
+                <button
+                  className="button bg-blue-600 text-white mt-2"
+                  onClick={handleConvertToCSV}
+                >
+                  Convert to CSV
+                </button>
+              </div>
             </div>
           )}
         </>
       )}
-      {/* Show this if PGlite itself failed to load */}
-       {!usePGlite && (
-         <p className="error">PGLite React bindings (usePGlite) not found.</p>
-       )}
+
+      {!usePGlite && (
+        <p className="error">PGLite React bindings (usePGlite) not found.</p>
+      )}
     </div>
   );
 };

@@ -52,9 +52,24 @@ const GroupOptions = () => {
   return (
     <div className="mt-6 p-4 border border-gray-700 rounded-lg">
       <h3 className="text-lg font-semibold mb-2">Aggregation Strategy Options</h3>
-      <p className="text-sm mb-3">Current Aggregation Preference: <strong>{currentGroup}</strong></p>
-      <div className="flex flex-wrap gap-2">
-        
+      <p className="text-sm mb-3">Current Aggregation Preference: <strong
+  style={{
+    fontWeight: '600',
+    color: '#10b981', // emerald green
+    backgroundColor: '#064e3b',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    fontSize: '0.95em',
+  }}
+>
+  {currentGroup}</strong></p>
+      {/* <div className="flex flex-wrap gap-2"> */}
+      <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    flexWrap: 'wrap',
+                    // width: 100%,
+                  }}>
         <button
           className="button text-sm bg-pink-600 hover:bg-pink-700 text-white" 
           onClick={() => forceGroup("hashagg")}
