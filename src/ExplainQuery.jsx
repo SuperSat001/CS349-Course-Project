@@ -40,21 +40,6 @@ const ExplainQuery = ({ studentSchema, queryHistory, setQueryHistory }) => {
     const explainSql = `EXPLAIN ANALYZE ${queryToExplain}`;
     setSelectedQuery(explainSql); // Show the EXPLAIN command itself
 
-     // Update query history
-    setQueryHistory((prevHistory) => {
-      const updatedHistory = [queryToExplain, ...prevHistory];
-      const uniqueHistory = [];
-      for(var i = 0; i < updatedHistory.length && uniqueHistory.length < 10; i++) {
-        if (!uniqueHistory.includes(updatedHistory[i])) {
-          uniqueHistory.push(updatedHistory[i]);
-        }
-      }
-      return uniqueHistory;
-    });
-
-    // Save the query history to localStorage
-    localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
-
     // Store original search_path to restore later
     let originalSearchPath = 'public';
     try {
@@ -80,6 +65,22 @@ const ExplainQuery = ({ studentSchema, queryHistory, setQueryHistory }) => {
       if (result.rows.length > 0) {
         const explainAnalyzePlan = result.rows.map(row => row['QUERY PLAN']).join('\n');
         setPlan(explainAnalyzePlan);
+
+        // Update query history
+        setQueryHistory((prevHistory) => {
+          const updatedHistory = [queryToExplain, ...prevHistory];
+          const uniqueHistory = [];
+          for(var i = 0; i < updatedHistory.length && uniqueHistory.length < 10; i++) {
+            if (!uniqueHistory.includes(updatedHistory[i])) {
+              uniqueHistory.push(updatedHistory[i]);
+            }
+          }
+          return uniqueHistory;
+        });
+
+        // Save the query history to localStorage
+        localStorage.setItem('queryHistory', JSON.stringify(queryHistory));
+
       } else {
         setError(`Explain query ran for schema '${studentSchema}' but returned no plan data. Check query syntax.`);
       }
