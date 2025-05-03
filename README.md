@@ -13,3 +13,5 @@
 ## ⚙️ Setup Instructions
 
 Run `npm install` to install dependencies.
+
+Then use `npm run dev` to run the app.
