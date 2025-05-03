@@ -43,7 +43,15 @@ const ExplainQuery = ({ studentSchema, queryHistory, setQueryHistory }) => {
      // Update query history
     setQueryHistory((prevHistory) => {
       const updatedHistory = [queryToExplain, ...prevHistory];
-      return updatedHistory.slice(0, 10); // Keep only the last 10 queries
+      const returnedHistory = [];
+      for (let i = 0; i < updatedHistory.length && returnedHistory.length <= 10; i++) {
+      if (updatedHistory[i] && !returnedHistory.includes(updatedHistory[i])) {
+        returnedHistory.push(updatedHistory[i]);
+      }
+      }
+      // Save updated history to local storage
+      localStorage.setItem('queryHistory', JSON.stringify(returnedHistory));
+      return returnedHistory;
     });
 
     console.log(queryHistory);
