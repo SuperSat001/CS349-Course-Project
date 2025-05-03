@@ -118,24 +118,25 @@ const getHighlightingInfo = (studentRows = [], correctRows = [], orderMatters = 
 };
 // --- End Comparison Logic ---
 
-// --- Separate Comparison Function for Status ---
-const compareResultsForStatus = (studentRows, correctRows, orderIndependent) => {
+// --- Separate Comparison Function for Status (CORRECTED) ---
+const compareResultsForStatus = (studentRows, correctRows, orderMatters) => {
     // Basic checks first
     if (!Array.isArray(studentRows) || !Array.isArray(correctRows)) return false;
     if (studentRows.length !== correctRows.length) return false;
     if (studentRows.length === 0) return true; // Both empty is considered equal
 
-    // Check if column names/order match (essential for accurate comparison)
-    if (studentRows.length > 0 && correctRows.length > 0) {
+    // Check column names/order match (essential for accurate comparison)
+     if (studentRows.length > 0 && correctRows.length > 0) {
+        // Check column names using the first row of each
         const studentCols = Object.keys(studentRows[0]).sort();
         const correctCols = Object.keys(correctRows[0]).sort();
         if (JSON.stringify(studentCols) !== JSON.stringify(correctCols)) {
             console.warn("Column mismatch during status comparison.");
-            return false; // Treat as non-match if columns differ
+            return false; // Columns differ, cannot match
         }
-    } else {
-         // One has columns, the other doesn't (should have been caught by length check, but safe)
-          return false;
+    } else if(studentRows.length !== correctRows.length){
+        // Should be caught by length check, but safe fallback
+        return false;
     }
 
 
@@ -148,13 +149,15 @@ const compareResultsForStatus = (studentRows, correctRows, orderIndependent) => 
     let studentData = studentRows.map(normalizeRow);
     let correctData = correctRows.map(normalizeRow);
 
-    // Sort stringified rows if order doesn't matter
-    if (orderIndependent) {
+    // --- CORRECTED CORE LOGIC ---
+    // If order *DOES NOT* matter (checkbox is OFF / orderMatters is false), THEN sort the arrays.
+    if (!orderMatters) {
         studentData.sort();
         correctData.sort();
     }
+    // If order *DOES* matter (checkbox is ON / orderMatters is true), we leave them unsorted.
 
-    // Compare the final arrays of strings
+    // Final comparison of the (potentially sorted) stringified arrays
     return JSON.stringify(studentData) === JSON.stringify(correctData);
 };
 // --- End Comparison Function for Status ---
