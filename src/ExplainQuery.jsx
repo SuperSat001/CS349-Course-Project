@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { usePGlite } from "@electric-sql/pglite-react";
 
 // Accept studentSchema prop from QueryPlanning
-const ExplainQuery = ({ studentSchema }) => {
+const ExplainQuery = ({ studentSchema, queryHistory, setQueryHistory }) => {
   const db = usePGlite(); // Get the single DB instance
   const [plan, setPlan] = useState("");
   const [selectedQuery, setSelectedQuery] = useState("");
@@ -39,6 +39,14 @@ const ExplainQuery = ({ studentSchema }) => {
     const queryToExplain = inputQuery; // The actual query entered by the user
     const explainSql = `EXPLAIN ANALYZE ${queryToExplain}`;
     setSelectedQuery(explainSql); // Show the EXPLAIN command itself
+
+     // Update query history
+    setQueryHistory((prevHistory) => {
+      const updatedHistory = [queryToExplain, ...prevHistory];
+      return updatedHistory.slice(0, 10); // Keep only the last 10 queries
+    });
+
+    console.log(queryHistory);
 
     // Store original search_path to restore later
     let originalSearchPath = 'public';
