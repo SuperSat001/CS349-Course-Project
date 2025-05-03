@@ -225,8 +225,23 @@ const AssignmentAttemptPage = ({ studentSchema }) => { // Expect studentSchema p
         setCorrectness(prev => ({ ...prev, [questionId]: isMatch ? 'Correct' : 'Incorrect' }));
     };
 
-    // --- openPlayground (Keep as placeholder or implement) ---
-    const openPlayground = (questionId) => { /* ... */ };
+    const openPlayground = (questionId) => {
+        console.log("Attempting to navigate to playground:");
+        console.log("  assignmentId from useParams:", assignmentId);
+        console.log("  questionId passed from button:", questionId);
+    
+        // Check explicitly if they are valid before navigating
+        if (!assignmentId || !questionId) {
+            console.error("ERROR: Cannot navigate! Missing assignmentId or questionId.");
+            // Optionally show an error message to the user
+            // setError('Could not navigate to playground: missing information.');
+            return;
+        }
+    
+        const targetPath = '/assignments/' + assignmentId + '/question/' + questionId + '/playground';
+        console.log("  Navigating to:", targetPath);
+        navigate(targetPath);
+    };
 
     // --- Render Logic ---
     if (loading) return <div className="container"><p>Loading assignment...</p></div>;
@@ -256,13 +271,16 @@ const AssignmentAttemptPage = ({ studentSchema }) => { // Expect studentSchema p
                     <div className="flex items-center justify-between mt-2">
                         {/* Playground Button */}
                         <div>
-                            <button onClick={() => openPlayground(q.question_id)} className="button text-xs bg-gray-600 hover:bg-gray-500 mr-2">Query Playground</button>
+                        <button
+                                onClick={() => openPlayground(q.question_id)} // Call the navigation function
+                                className="button text-xs bg-gray-600 hover:bg-gray-500 mr-2"
+                                disabled={!assignmentId || !q.question_id} // Disable if IDs aren't ready
+                            > Query Playground </button>
                         </div>
                         {/* Run Button */}
                         <button
                             onClick={() => runStudentQuery(q.question_id)}
                             className="button bg-blue-600 hover:bg-blue-700"
-                            // Disable if no active schema OR no query entered
                             disabled={!studentSchema || !db || !studentQueries[q.question_id]?.trim()}
                         > Run & Check Query </button>
                     </div>

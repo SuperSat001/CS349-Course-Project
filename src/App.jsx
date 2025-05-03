@@ -17,6 +17,7 @@ import AddAssignmentPage from './AddAssignmentPage.jsx';
 import AssignmentAttemptPage from './AssignmentAttemptPage.jsx';
 import SchemaManager from './SchemaManager.jsx';
 import AssignmentEditPage from './AssignmentEditPage.jsx';
+import QueryPlaygroundPage from './QueryPlaygroundPage.jsx';
 import './App.css';
 
 function App() {
@@ -295,7 +296,10 @@ function App() {
             {/* --- Student Assignment Attempt Route --- */}
             {/* Attempt specific assignment - Corrected path */}
             <Route path="/assignments/:assignmentId/attempt" element={<AssignmentAttemptPage studentSchema={activeStudentSchema} selectedCourseId={selectedCourseId} />} />
-
+            <Route
+              path="/assignments/:assignmentId/question/:questionId/playground"
+              element={<QueryPlaygroundPage studentSchema={activeStudentSchema} selectedCourseId={selectedCourseId} />}
+            />
             {/* --- Other Tools/Pages --- */}
             <Route path="/browse" element={<Minimal studentSchema={activeStudentSchema} />} />
             <Route path="/query-planning" element={<QueryPlanning studentSchema={activeStudentSchema} />} />

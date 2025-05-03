@@ -20,23 +20,23 @@ const QuestionEditor = ({ question, index, onUpdate, onRemove }) => {
             </div>
             {/* Question Text */}
             <div className="mb-2">
-                <label htmlFor={`qText-${index}`} className="label text-sm">Question Text*</label>
-                <textarea id={`qText-${index}`} name="qText" rows="3" value={question.qText || ''} onChange={handleChange} className="textarea text-sm" required />
+                <label htmlFor={`querytext-${index}`} className="label text-sm">Question Text*</label>
+                <textarea id={`querytext-${index}`} name="querytext" rows="3" value={question.querytext || ''} onChange={handleChange} className="textarea text-sm" required />
             </div>
             {/* Correct SQL */}
             <div className="mb-2">
-                <label htmlFor={`correctQuery-${index}`} className="label text-sm">Correct SQL Query*</label>
-                <textarea id={`correctQuery-${index}`} name="correctQuery" rows="4" value={question.correctQuery || ''} onChange={handleChange} className="textarea font-mono text-xs" required />
+                <label htmlFor={`correctquery-${index}`} className="label text-sm">Correct SQL Query*</label>
+                <textarea id={`correctquery-${index}`} name="correctquery" rows="4" value={question.correctquery || ''} onChange={handleChange} className="textarea font-mono text-xs" required />
             </div>
             {/* Marks & Order Independent */}
             <div className="grid grid-cols-2 gap-4 mb-2">
                 <div>
-                    <label htmlFor={`marks-${index}`} className="label text-sm">Marks*</label>
-                    <input type="number" id={`marks-${index}`} name="marks" value={question.marks ?? 1} onChange={handleChange} className="input text-sm" required min="0" step="0.5"/>
+                    <label htmlFor={`totalmarks-${index}`} className="label text-sm">Marks*</label>
+                    <input type="number" id={`totalmarks-${index}`} name="totalmarks" value={question.totalmarks ?? 1} onChange={handleChange} className="input text-sm" required min="0" step="0.5"/>
                 </div>
                 <div className="flex items-center mt-5">
-                     <input type="checkbox" id={`orderIndependent-${index}`} name="orderIndependent" checked={!!question.orderIndependent} onChange={handleChange} className="mr-2 h-4 w-4"/>
-                     <label htmlFor={`orderIndependent-${index}`} className="label text-sm pt-1">Order Independent?</label>
+                     <input type="checkbox" id={`orderindependent-${index}`} name="orderindependent" checked={!!question.orderindependent} onChange={handleChange} className="mr-2 h-4 w-4"/>
+                     <label htmlFor={`orderindependent-${index}`} className="label text-sm pt-1">Order Independent?</label>
                 </div>
             </div>
             {!isValid && <p className="text-xs text-red-400 mt-1">Text, query, and non-negative marks required.</p>}
@@ -94,12 +94,13 @@ const AssignmentEditPage = ({ selectedCourseId }) => {
 
       // Fetch Questions for this assignment
       const qinfoRes = await db.query(
-        `SELECT question_id, querytext as qText, correctquery, totalmarks as marks, orderindependent
+        `SELECT *
          FROM public.xdata_qinfo
          WHERE course_id = $1 AND assignment_id = $2 ORDER BY question_id`,
         [selectedCourseId, assignmentId]
       );
-      setQuestions(qinfoRes.rows.map(q => ({...q, orderIndependent: !!q.orderindependent})));
+      console.log("Fetched questions:", qinfoRes.rows);
+      setQuestions(qinfoRes.rows);
 
       // Fetch Available Base Schemas for this course
       const schemaRes = await db.query(
@@ -148,7 +149,7 @@ const AssignmentEditPage = ({ selectedCourseId }) => {
     setMessage(''); setError('');
 
     // Validation (same as Add page)
-    if (!assignmentName || !schemaId || connectionId === '' || questions.length === 0 || questions.some(q => !q.qText?.trim() || !q.correctQuery?.trim() || q.marks === undefined || q.marks < 0)) {
+    if (!assignmentName || !schemaId || connectionId === '' || questions.length === 0 || questions.some(q => !q.querytext?.trim() || !q.correctquery?.trim() || q.totalmarks === undefined || q.totalmarks < 0)) {
         setError('Validation Error: Please ensure Assignment Name, Base Schema, Connection/(None) are set, and all questions have text, query, and marks.');
         return;
     }
@@ -175,7 +176,7 @@ const AssignmentEditPage = ({ selectedCourseId }) => {
         for (let i = 0; i < questions.length; i++) {
             const question = questions[i];
             const questionId = i + 1; // Assign new sequential ID
-            const qinfoParams = [selectedCourseId, assignmentId, questionId, question.qText.trim(), question.correctQuery.trim(), parseFloat(question.marks) || 0, question.orderIndependent || false, questionId]; // query_id = question_id
+            const qinfoParams = [selectedCourseId, assignmentId, questionId, question.querytext.trim(), question.correctquery.trim(), parseFloat(question.totalmarks) || 0, question.orderindependent || false, questionId]; // query_id = question_id
             await db.query(qinfoSql, qinfoParams);
             console.log(`Question ${questionId} inserted/updated for assignment ${assignmentId}.`);
         }

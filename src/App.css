@@ -287,3 +287,15 @@ tbody tr:hover .td {
 .disabledLink::after {
     display: none; /* No underline for disabled links */
 }
+
+/* Highlighting for Playground Table Rows */
+tr.highlight-extra td {
+  background-color: rgba(74, 222, 128, 0.2); /* Light green background for extra rows */
+  /* You could also use outline or border */
+   /* outline: 1px solid rgb(74, 222, 128); */
+}
+
+tr.highlight-missing td {
+  background-color: rgba(248, 113, 113, 0.2); /* Light red background for missing rows */
+   /* outline: 1px solid rgb(248, 113, 113); */
+}
