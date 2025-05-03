@@ -1,0 +1,310 @@
+/* App.css - Component-specific styles for dark theme */
+
+/* Navigation Bar Styles (corresponds to styles.nav in JS object) */
+.nav {
+  position: sticky; /* Use sticky instead of fixed for better flow */
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--background-secondary);
+  z-index: 1000; /* Ensures it stays on top */
+  padding: 0.8rem 1.5rem; /* Adjust padding */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Darker shadow */
+  display: flex;
+  justify-content: center; /* Center links */
+  align-items: center;
+  gap: 1.5rem; /* Space between links */
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Navigation Link Styles (corresponds to styles.navLink in JS object) */
+.navLink {
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  font-weight: 500;
+}
+.navLink:hover {
+  background-color: var(--background-tertiary);
+  color: var(--accent-secondary);
+  text-decoration: none; /* Remove underline from base styles on hover */
+}
+
+/* Disabled Navigation Link Styles (corresponds to styles.disabledLink in JS object) */
+.disabledLink {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none; /* Prevent clicks */
+}
+.disabledLink:hover {
+  background-color: transparent; /* No hover effect */
+  color: var(--text-secondary);
+}
+
+/* Main Content Container Styles (corresponds to styles.container in JS object) */
+.container {
+  padding: 1.5rem; /* Adjust padding */
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  flex-grow: 1; /* Allow container to fill remaining space */
+  width: 100%;
+  max-width: 1200px; /* Max width for content */
+  margin: 0 auto; /* Center container */
+  padding-top: 70px; /* Add padding to offset fixed/sticky nav */
+}
+
+/* Heading Styles within Containers (corresponds to styles.heading in JS object) */
+.heading {
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--accent-primary);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  text-align: left; /* Align headings left */
+}
+
+/* Specific Button Styles (if needed beyond index.css, corresponds to styles.button) */
+/* Example: .button { ... } */
+/* Often, base styles in index.css are sufficient */
+
+/* Input and Textarea Styles (corresponds to styles.input, styles.textarea) */
+.input,
+.textarea {
+  background-color: var(--background-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  width: 100%; /* Make inputs/textareas full width by default */
+  margin-bottom: 1rem;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.input:focus,
+.textarea:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.5); /* Blue glow on focus */
+  outline: none;
+}
+.textarea {
+  min-height: 100px; /* Give textarea some default height */
+  resize: vertical; /* Allow vertical resize */
+}
+
+/* List Item Styles (e.g., for courses, corresponds to styles.listItem) */
+.listItem {
+  background-color: var(--background-secondary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: border-color 0.2s ease-in-out;
+}
+.listItem:hover {
+   border-color: var(--accent-secondary);
+}
+.listItem h3 {
+  margin-top: 0; /* Remove top margin for heading inside list item */
+  color: var(--accent-secondary);
+}
+
+.selectedCourse {
+ 
+  border: 3px solid rgb(3, 222, 238); /* blue-400 */
+  /* border-radius: 0.5rem; */
+  /* padding: 0.75rem; */
+  /* box-shadow: 0 0 10px rgba(96, 165, 250, 0.4); */
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Error Message Styles (corresponds to styles.error) */
+.error {
+  color: var(--error-text);
+  background-color: var(--error-background);
+  border: 1px solid var(--error-border);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+}
+
+/* General Message Styles (corresponds to styles.message) */
+.message {
+  color: var(--warning-text);
+  background-color: var(--warning-background);
+  border: 1px solid var(--warning-border);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.9em;
+  white-space: pre-wrap; /* Keep line breaks */
+}
+/* Success message style (can add a specific class if needed) */
+.message.success {
+  color: var(--success-text);
+  background-color: #2a4a2a; /* Dark green */
+  border-color: #5a8a5a;
+}
+
+
+/* Preformatted Text Styles (for code/query plans, corresponds to styles.pre) */
+.pre {
+  background-color: #0f1113; /* Slightly darker than primary bg */
+  color: var(--text-primary);
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  border: 1px solid var(--border-color);
+}
+
+/* Table Styles (corresponds to styles.table, styles.th, styles.td) */
+.table {
+  width: 100%;
+  border-collapse: collapse; /* Use collapse for cleaner lines */
+  margin-top: 1.5rem;
+  font-size: 0.9em;
+}
+.th,
+.td {
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1rem;
+  text-align: left; /* Align text left by default */
+}
+.th {
+  background-color: var(--background-tertiary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.td {
+  background-color: var(--background-secondary);
+  color: var(--text-secondary);
+}
+/* Center text in table cells if needed */
+.td.text-center {
+  text-align: center;
+}
+/* Add hover effect for table rows */
+tbody tr:hover .td {
+  background-color: var(--background-tertiary);
+  color: var(--text-primary);
+}
+
+
+/* Global Error Banner Styles (corresponds to styles.globalError in JS object) */
+.globalError {
+  background-color: var(--error-background);
+  color: var(--error-text);
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 2px solid var(--error-border);
+  position: sticky; /* Make it stick to the top */
+  top: 0;
+  z-index: 1050; /* Ensure it's above the nav */
+}
+
+/* Remove old layout styles if not used */
+/*
+.main-container { ... }
+.left-column { ... }
+.right-column { ... }
+*/
+
+/* Navbar Container */
+.nav {
+  /* Positioning & Sizing */
+  position: sticky;   /* Sticks to the top when scrolling */
+  top: 0;
+  left: 0;
+  width: 100%;      /* Ensures it spans the full width */
+  height: 60px;       /* Define a fixed height */
+  z-index: 1000;      /* Stays on top of other content */
+
+  /* Appearance */
+  background-color: var(--background-secondary); /* Use dark grey from index.css */
+  border-bottom: 1px solid var(--border-color); /* Subtle separator line */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* Add depth */
+
+  /* Flex Layout */
+  display: flex;
+  justify-content: center; /* Center the links horizontally */
+  align-items: center;     /* Center items vertically */
+  padding: 0 2rem;         /* Add some horizontal padding */
+}
+
+/* Container specifically for the links (helps manage spacing) */
+.nav-links-container { /* You might need to wrap your <Link> elements in a div with this class in Navbar component */
+  display: flex;
+  gap: 2.5rem; /* Adjust spacing between links */
+}
+
+/* Individual Navigation Links */
+.navLink {
+  /* Text */
+  color: var(--text-secondary); /* Use secondary text color */
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-decoration: none;
+
+  /* Layout & Interaction */
+  padding: 0.6rem 1rem; /* Padding for click area and visual spacing */
+  border-radius: 6px;    /* Slightly rounded corners for hover background */
+  position: relative;    /* Needed for the underline pseudo-element */
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+/* Hover effect for Navigation Links */
+.navLink:hover {
+  color: var(--text-primary); /* Lighter text on hover */
+  background-color: var(--background-tertiary); /* Subtle background highlight */
+  text-decoration: none; /* Override default link hover */
+}
+
+/* Optional: Underline effect on hover */
+.navLink::after {
+  content: '';
+  position: absolute;
+  width: 0; /* Start with no width */
+  height: 2px; /* Thickness of the underline */
+  bottom: 5px; /* Position below the text (adjust as needed) */
+  left: 50%;
+  transform: translateX(-50%); /* Center the growing line */
+  background-color: var(--accent-secondary); /* Use teal accent color */
+  transition: width 0.3s ease; /* Smooth transition for width */
+}
+
+.navLink:hover::after {
+   width: 60%; /* Underline grows to 60% width on hover */
+}
+
+/* Disabled Link Styles */
+.disabledLink {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none; /* Disable clicks */
+}
+/* Ensure disabled links don't get hover effects */
+.disabledLink:hover {
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+.disabledLink::after {
+    display: none; /* No underline for disabled links */
+}
+
+/* Highlighting for Playground Table Rows */
+tr.highlight-extra td {
+  background-color: rgba(74, 222, 128, 0.2); /* Light green background for extra rows */
+  /* You could also use outline or border */
+   /* outline: 1px solid rgb(74, 222, 128); */
+}
+
+tr.highlight-missing td {
+  background-color: rgba(248, 113, 113, 0.2); /* Light red background for missing rows */
+   /* outline: 1px solid rgb(248, 113, 113); */
+}
