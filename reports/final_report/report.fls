@@ -1,8 +1,8 @@
-PWD /Users/satyankar/Desktop/Classwork/CS349/CS349-Course-Project/final_report
+PWD /Users/satyankar/Desktop/Classwork/CS349/CS349-Course-Project/reports/final_report
 INPUT /usr/local/texlive/2024/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2024/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/satyankar/Desktop/Classwork/CS349/CS349-Course-Project/final_report/report.tex
+INPUT /Users/satyankar/Desktop/Classwork/CS349/CS349-Course-Project/reports/final_report/report.tex
 OUTPUT report.log
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/local/texlive/2024/texmf-dist/tex/latex/base/article.cls
