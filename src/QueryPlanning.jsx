@@ -7,7 +7,10 @@ import GroupOptions from './GroupOptions';
 import { useState } from 'react';
 
 function QueryPlanning({ studentSchema }) {
-  const [queryHistory, setQueryHistory] = useState([]);
+  const [queryHistory, setQueryHistory] = useState(() => {
+    const savedHistory = localStorage.getItem('queryHistory');
+    return savedHistory ? JSON.parse(savedHistory) : [];
+  });
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
