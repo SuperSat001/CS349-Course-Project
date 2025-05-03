@@ -92,10 +92,9 @@ const CourseList = ({setSelectedCourseId,selectedCourseId}) => {
                                 style={{ cursor: 'pointer' }} >
                             <h3 className="text-xl font-semibold">{course.course_name || '(No Name)'}</h3>
                             <p className="text-sm text-gray-400 mb-1">
-                                ID: {course.instructor_course_id}
-                                {course.year && course.semester && ` | ${course.semester}, ${course.year}`}
-                                {course.year && !course.semester && ` | ${course.year}`}
-                                {!course.year && course.semester && ` | ${course.semester}`}
+                                  ID: {course.instructor_course_id}
+                                    {course.semester && <><br />Semester: {course.semester}</>}
+                                    {course.year && <><br />Year: {course.year}</>}
                             </p>
                             <p className="text-gray-300">{course.description || '(No description)'}</p>
                         </li>
